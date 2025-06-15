@@ -306,7 +306,8 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
         maxCumZScore: maxCumZScore,
         minCumZScore: minCumZScore,
         maxCumPValue: maxCumPValue,
-        minCumPValue: minCumPValue    };
+        minCumPValue: minCumPValue
+    };
 }
 
 // Analyze bets with D'Alembert strategy
