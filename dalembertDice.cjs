@@ -114,7 +114,7 @@ function normalCDF(z) {
     return cdf;
 }
 
-// Calculate z-score and one-tailed p-value for a roll
+// Calculate z-score and one-tailed p-value for a single roll
 function calculateStats(roll) {
     const mean = 50; // Mean of uniform [0, 100]
     const stdDev = Math.sqrt((100 * 100) / 12); // ≈ 28.8675
@@ -124,17 +124,32 @@ function calculateStats(roll) {
     if (roll >= 50) {
         // Over: P(X >= roll)
         pValue = 1 - (roll / 100); // Linear CDF for uniform distribution
-        // Alternatively: pValue = 1 - normalCDF(z); // Normal approximation
     } else {
         // Under: P(X <= roll)
         pValue = roll / 100; // Linear CDF for uniform distribution
-        // Alternatively: pValue = normalCDF(z); // Normal approximation
     }
 
     return {
         outcome: roll >= 50 ? 'Over' : 'Under',
-        zScore: z.toFixed(4),
-        pValue: pValue.toFixed(6)
+        zScore: z,
+        pValue: pValue
+    };
+}
+
+// Calculate cumulative z-score and one-tailed p-value for proportion of overs
+function calculateCumulativeStats(overCount, totalRolls) {
+    if (totalRolls === 0) {
+        return { cumZScore: 0, cumPValue: 0.5 };
+    }
+    const p = 0.5; // Expected proportion of overs
+    const pHat = overCount / totalRolls; // Observed proportion
+    const stdError = Math.sqrt(p * (1 - p) / totalRolls); // sqrt(0.25 / n)
+    const z = (pHat - p) / stdError; // Z-score = 2 * (pHat - 0.5) * sqrt(n)
+    const pValue = 1 - normalCDF(z); // One-tailed: P(Z >= z) for more overs
+
+    return {
+        cumZScore: z,
+        cumPValue: pValue
     };
 }
 
@@ -147,6 +162,13 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
     nextBet = initialBet; // Set initial bet from parameter
     unit = unitSize; // Set unit size from parameter
 
+    // Initialize min/max z-score and p-value trackers
+    let maxCumZScore = -Infinity;
+    let minCumZScore = Infinity;
+    let maxCumPValue = -Infinity;
+    let minCumPValue = Infinity;
+    let overCount = 0; // Track number of "over" outcomes
+
     while (betCount < numberOfBets) { // Changed <= to < to match numberOfBets
 
         bet = nextBet; // Update the bet to the current bet value
@@ -156,7 +178,17 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
         totalWagered += bet; // Update total wagered
         
         const roll = getDiceRoll(serverSeed, clientSeed, nonce, 0);
-        const stats = calculateStats(roll); // Compute z-score and p-value
+
+        if (roll >= 50) {
+            overCount++; // Increment for roll >= 50
+        }
+        const cumStats = calculateCumulativeStats(overCount, betCount + 1); // Cumulative stats
+
+        // Update min/max z-score and p-value
+        maxCumZScore = Math.max(maxCumZScore, cumStats.cumZScore);
+        minCumZScore = Math.min(minCumZScore, cumStats.cumZScore);
+        maxCumPValue = Math.max(maxCumPValue, cumStats.cumPValue);
+        minCumPValue = Math.min(minCumPValue, cumStats.cumPValue);
 
         if (betHigh) {
             win = roll >= (100 - chance);
@@ -200,9 +232,8 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
                     'Client Seed: ' + clientSeed,
                     'Nonce: ' + nonce,
                     'Roll: ' + roll.toFixed(2),
-                    'Outcome: ' + stats.outcome,
-                    'Z-Score: ' + stats.zScore,
-                    'P-Value: ' + stats.pValue,
+                    'Cum Z-Score: ' + cumStats.cumZScore.toFixed(4),
+                    'Cum P-Value: ' + cumStats.cumPValue.toFixed(6),                    
                     'Win: ' + win,
                     'Payout: ' + payOut,
                     'Bet: ' + bet.toFixed(8),
@@ -249,9 +280,8 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
                     'Progress %: ' + progress.toFixed(4),
                     'Bet Count: ' + betCount,
                     'Result: ' + roll,
-                    'Outcome: ' + stats.outcome,
-                    'Z-Score: ' + stats.zScore,
-                    'P-Value: ' + stats.pValue,
+                    'Cum Z-Score: ' + cumStats.cumZScore.toFixed(4),
+                    'Cum P-Value: ' + cumStats.cumPValue.toFixed(6),
                     'Bet High: ' + betHigh,
                     'Next Bet Amount: ' + lastBet.toFixed(5),
                     'Wagered: ' + totalWagered.toFixed(8),
@@ -272,8 +302,11 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
     return {
         betCount: betCount,
         maxLossStreak: maxStreak,
-        maxStreakNonce: maxStreakNonce
-    };
+        maxStreakNonce: maxStreakNonce,
+        maxCumZScore: maxCumZScore,
+        minCumZScore: minCumZScore,
+        maxCumPValue: maxCumPValue,
+        minCumPValue: minCumPValue    };
 }
 
 // Analyze bets with D'Alembert strategy
@@ -448,7 +481,10 @@ result.then((result) => {
             'Total Profit: ' + profit.toFixed(8),
             'Total Wagered: ' + totalWagered.toFixed(8),
             'Win Ratio: ' + winRatio.toFixed(2) + '%',
-            'Bets per Second: ' + betsPerSecond.toFixed(2)
+            'Max Cum Z-Score: ' + result.maxCumZScore.toFixed(4),
+            'Min Cum Z-Score: ' + result.minCumZScore.toFixed(4),
+            'Max Cum P-Value: ' + result.maxCumPValue.toFixed(6),
+            'Min Cum P-Value: ' + result.minCumPValue.toFixed(6),            'Bets per Second: ' + betsPerSecond.toFixed(2)
         ].join(' | ')
     );
 });
