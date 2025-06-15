@@ -92,6 +92,52 @@ function generateRandomServerSeed(length) {
     return result.join('');
 };
 
+// Approximate standard normal CDF for p-value calculation
+function normalCDF(z) {
+    // Using the Abramowitz and Stegun approximation for standard normal CDF
+    const b1 = 0.319381530;
+    const b2 = -0.356563782;
+    const b3 = 1.781477937;
+    const b4 = -1.821255978;
+    const b5 = 1.330274429;
+    const p = 0.2316419;
+    const c = 0.39894228;
+
+    const t = 1 / (1 + p * Math.abs(z));
+    const poly = t * (b1 + t * (b2 + t * (b3 + t * (b4 + t * b5))));
+    let cdf = 1 - c * Math.exp(-z * z / 2) * poly;
+
+    if (z < 0) {
+        cdf = 1 - cdf;
+    }
+
+    return cdf;
+}
+
+// Calculate z-score and one-tailed p-value for a roll
+function calculateStats(roll) {
+    const mean = 50; // Mean of uniform [0, 100]
+    const stdDev = Math.sqrt((100 * 100) / 12); // ≈ 28.8675
+    const z = (roll - mean) / stdDev; // Z-score
+    let pValue;
+
+    if (roll >= 50) {
+        // Over: P(X >= roll)
+        pValue = 1 - (roll / 100); // Linear CDF for uniform distribution
+        // Alternatively: pValue = 1 - normalCDF(z); // Normal approximation
+    } else {
+        // Under: P(X <= roll)
+        pValue = roll / 100; // Linear CDF for uniform distribution
+        // Alternatively: pValue = normalCDF(z); // Normal approximation
+    }
+
+    return {
+        outcome: roll >= 50 ? 'Over' : 'Under',
+        zScore: z.toFixed(4),
+        pValue: pValue.toFixed(6)
+    };
+}
+
 // Main function to analyze bets based on the given parameters
 async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, initialBet, unitSize) {
     let currentStreak = 0;
@@ -110,6 +156,7 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
         totalWagered += bet; // Update total wagered
         
         const roll = getDiceRoll(serverSeed, clientSeed, nonce, 0);
+        const stats = calculateStats(roll); // Compute z-score and p-value
 
         if (betHigh) {
             win = roll >= (100 - chance);
@@ -153,6 +200,9 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
                     'Client Seed: ' + clientSeed,
                     'Nonce: ' + nonce,
                     'Roll: ' + roll.toFixed(2),
+                    'Outcome: ' + stats.outcome,
+                    'Z-Score: ' + stats.zScore,
+                    'P-Value: ' + stats.pValue,
                     'Win: ' + win,
                     'Payout: ' + payOut,
                     'Bet: ' + bet.toFixed(8),
@@ -199,6 +249,9 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
                     'Progress %: ' + progress.toFixed(4),
                     'Bet Count: ' + betCount,
                     'Result: ' + roll,
+                    'Outcome: ' + stats.outcome,
+                    'Z-Score: ' + stats.zScore,
+                    'P-Value: ' + stats.pValue,
                     'Bet High: ' + betHigh,
                     'Next Bet Amount: ' + lastBet.toFixed(5),
                     'Wagered: ' + totalWagered.toFixed(8),
