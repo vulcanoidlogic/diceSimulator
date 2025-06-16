@@ -2,7 +2,7 @@
 const crypto = require('crypto');
 
 // Global boolean to control the use of random seeds
-const useRandomSeed = false;
+const useRandomSeed = true;
 const debugMode = true;
 // If useRandomSeed is false, use predefined values, otherwise generate random seeds
 const randomServerSeed = useRandomSeed ? generateRandomServerSeed(64) : 'd437ff723a79eac4df9cb482fe26c17648fecb621d4b61c6ad7a5b7a33b9c04a';
@@ -21,7 +21,7 @@ let chance = 50,
     totalBets = 50000,
     houseEdge = 2,
     payOut = ((100 - houseEdge) / (chance / 100) / 100),
-    increaseOnLoss = 1.2230,
+    trackZScoreAfterTrialsCnt = 1000, // Start tracking z-score and p-value after this many bets
     betHigh = false,
     win = false,
     bet = 0,
@@ -185,10 +185,12 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
         const cumStats = calculateCumulativeStats(overCount, betCount + 1); // Cumulative stats
 
         // Update min/max z-score and p-value
-        maxCumZScore = Math.max(maxCumZScore, cumStats.cumZScore);
-        minCumZScore = Math.min(minCumZScore, cumStats.cumZScore);
-        maxCumPValue = Math.max(maxCumPValue, cumStats.cumPValue);
-        minCumPValue = Math.min(minCumPValue, cumStats.cumPValue);
+        if (betCount > trackZScoreAfterTrialsCnt) { // Start tracking after trackZScoreAfterTrialsCnt bets
+            maxCumZScore = Math.max(maxCumZScore, cumStats.cumZScore);
+            minCumZScore = Math.min(minCumZScore, cumStats.cumZScore);
+            maxCumPValue = Math.max(maxCumPValue, cumStats.cumPValue);
+            minCumPValue = Math.min(minCumPValue, cumStats.cumPValue);
+        }
 
         if (betHigh) {
             win = roll >= (100 - chance);
