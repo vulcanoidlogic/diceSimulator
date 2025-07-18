@@ -8,7 +8,8 @@ const debugMode = true;
 const randomServerSeed = useRandomSeed ? generateRandomServerSeed(64) : 'd437ff723a79eac4df9cb482fe26c17648fecb621d4b61c6ad7a5b7a33b9c04a';
 // const randomServerSeed = useRandomSeed ? generateRandomServerSeed(64) : '664215b82cdc4de92f351bf54022425661dac1a6c1bc1a3d26c5b3f7a505bc62';
 const randomClientSeed = useRandomSeed ? generateRandomClientSeed(10) : '2UvhERpUjd';
-const startNonce = useRandomSeed ? Math.floor(Math.random() * 1000000) + 1 : 1;
+// const startNonce = useRandomSeed ? Math.floor(Math.random() * 1000000) + 1 : 1;
+const startNonce = 1;
 
 // Setting initial parameters for the simulation
 const startTime = Date.now();
@@ -17,8 +18,7 @@ let chance = 50,
     unit = 1, // Unit size for D'Alembert increase/decrease (configurable)
     nextBet = baseBet,
     balance = 1000000,
-    // totalBets = 1680000,
-    totalBets = 50000,
+    totalBets = 5000,
     houseEdge = 2,
     payOut = ((100 - houseEdge) / (chance / 100) / 100),
     trackZScoreAfterTrialsCnt = 1000, // Start tracking z-score and p-value after this many bets
@@ -157,7 +157,6 @@ function calculateCumulativeStats(overCount, totalRolls) {
 async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, initialBet, unitSize) {
     let currentStreak = 0;
     let maxStreak = 0;
-    let maxStreakNonce = 0;
     let nonce = startNonce;
     // Removed nextBet and unit as they are not needed; bet is fixed at 1 unit
     const fixedBet = 1; // Fixed bet size for follow-the-winner strategy
@@ -254,11 +253,8 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
         if (!debugMode) {
             if (nonce % 100000 === 0) {
                 const endTime = Date.now();
-                const runTimeSeconds = (endTime - startTime) / 1000;
-                const betsPerSecond = ((nonce - startNonce + 1) / runTimeSeconds).toLocaleString('en-US', { maximumFractionDigits: 2 });
                 console.log(
                     [
-                        'Progress %: ' + progress.toFixed(2),
                         'Bet Count: ' + betCount,
                         'Max Bets: ' + numberOfBets,
                         'Balance: ' + balance.toFixed(4),
@@ -274,24 +270,24 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
         } else {
             console.log(
                 [
-                    'Server Seed: ' + serverSeed,
-                    'Client Seed: ' + clientSeed,
-                    'Nonce: ' + nonce,
-                    'Progress %: ' + progress.toFixed(4),
-                    'Bet Count: ' + betCount,
+                    'BetCnt: ' + betCount,
                     'Result: ' + roll,
-                    'Cum Z-Score: ' + cumStats.cumZScore.toFixed(2),
-                    'Cum P-Value: ' + cumStats.cumPValue.toFixed(6),
-                    'Bet High: ' + betHigh,
-                    'Next Bet Amount: ' + fixedBet.toFixed(1), // Fixed at 1
-                    'Bet: ' + bet.toFixed(0),
-                    'Balance: ' + balance.toFixed(0),
+                    'CumZ: ' + cumStats.cumZScore.toFixed(2),
+                    'CumP: ' + cumStats.cumPValue.toFixed(6),
+                    'IsBetHigh: ' + betHigh,
+                    'NextBetAmount: ' + fixedBet.toFixed(1), // Fixed at 1
+                    'Bet: ' + bet.toFixed(1),
                     'Profit: ' + profit.toFixed(0),
-                    'Total W: ' + totalWagered.toFixed(8),
+                    'Balance: ' + balance.toFixed(0),
+                    'TotWagered: ' + totalWagered.toFixed(8),
                     'Wins: ' + winCount.toFixed(0),
                     'Win Ratio: ' + winRatio.toFixed(2),
                     'Current Streak: ' + currentStreak,
-                    'Worst Streak: ' + maxStreak
+                    'Worst Streak: ' + maxStreak,
+                    'Server Seed: ' + serverSeed,
+                    'Client Seed: ' + clientSeed,
+                    'Nonce: ' + nonce,
+                    'Progress %: ' + progress.toFixed(4)
                 ].join(' | ')
             );
             // await betDelay(100); // Uncomment if delay is needed
@@ -304,7 +300,6 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
     return {
         betCount: betCount,
         maxLossStreak: maxStreak,
-        maxStreakNonce: maxStreakNonce,
         maxCumZScore: maxCumZScore,
         minCumZScore: minCumZScore,
         maxCumPValue: maxCumPValue,
@@ -331,17 +326,16 @@ result.then((result) => {
     console.log('Complete!');
     console.log(
         [
-            'Total Bets: ' + result.betCount,
-            'Max Loss Streak: ' + result.maxLossStreak,
-            'Max Streak Nonce: ' + result.maxStreakNonce,
-            'Final Balance: ' + balance.toFixed(8),
             'Total Profit: ' + profit.toFixed(8),
-            'Total Wagered: ' + totalWagered.toFixed(8),
             'Win Ratio: ' + winRatio.toFixed(2) + '%',
             'Max Cum Z-Score: ' + result.maxCumZScore.toFixed(4),
             'Min Cum Z-Score: ' + result.minCumZScore.toFixed(4),
             'Max Cum P-Value: ' + result.maxCumPValue.toFixed(6),
-            'Min Cum P-Value: ' + result.minCumPValue.toFixed(6),            'Bets per Second: ' + betsPerSecond.toFixed(2)
+            'Min Cum P-Value: ' + result.minCumPValue.toFixed(6),
+            'Max Loss Streak: ' + result.maxLossStreak,
+            'Final Balance: ' + balance.toFixed(8),
+            'Total Bets: ' + result.betCount,
+            'Total Wagered: ' + totalWagered.toFixed(8)
         ].join(' | ')
     );
 });

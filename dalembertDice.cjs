@@ -8,7 +8,8 @@ const debugMode = true;
 const randomServerSeed = useRandomSeed ? generateRandomServerSeed(64) : 'd437ff723a79eac4df9cb482fe26c17648fecb621d4b61c6ad7a5b7a33b9c04a';
 // const randomServerSeed = useRandomSeed ? generateRandomServerSeed(64) : '664215b82cdc4de92f351bf54022425661dac1a6c1bc1a3d26c5b3f7a505bc62';
 const randomClientSeed = useRandomSeed ? generateRandomClientSeed(10) : '2UvhERpUjd';
-const startNonce = useRandomSeed ? Math.floor(Math.random() * 1000000) + 1 : 1;
+// const startNonce = useRandomSeed ? Math.floor(Math.random() * 1000000) + 1 : 1;
+const startNonce = 1;
 
 // Setting initial parameters for the simulation
 const startTime = Date.now();
@@ -274,25 +275,25 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
             }
         } else {
             console.log(
-                win ? '\x1b[32m%s\x1b[0m' : '\x1b[37m%s\x1b[0m',
                 [
-                    'Server Seed: ' + serverSeed,
-                    'Client Seed: ' + clientSeed,
-                    'Nonce: ' + nonce,
-                    'Progress %: ' + progress.toFixed(4),
-                    'Bet Count: ' + betCount,
+                    'BetCnt: ' + betCount,
                     'Result: ' + roll,
-                    'Cum Z-Score: ' + cumStats.cumZScore.toFixed(4),
-                    'Cum P-Value: ' + cumStats.cumPValue.toFixed(6),
-                    'Bet High: ' + betHigh,
-                    'Next Bet Amount: ' + lastBet.toFixed(5),
-                    'Wagered: ' + totalWagered.toFixed(8),
-                    'Profit: ' + profit.toFixed(8),
-                    'Wins: ' + winCount.toFixed(2),
-                    'Balance: ' + balance.toFixed(2),
+                    'CumZ: ' + cumStats.cumZScore.toFixed(2),
+                    'CumP: ' + cumStats.cumPValue.toFixed(6),
+                    'IsBetHigh: ' + betHigh,
+                    'NextBetAmount: ' + lastBet.toFixed(1), // Fixed at 1
+                    'Bet: ' + bet.toFixed(1),
+                    'Profit: ' + profit.toFixed(0),
+                    'Balance: ' + balance.toFixed(0),
+                    'TotWagered: ' + totalWagered.toFixed(8),
+                    'Wins: ' + winCount.toFixed(0),
                     'Win Ratio: ' + winRatio.toFixed(2),
                     'Current Streak: ' + currentStreak,
                     'Worst Streak: ' + maxStreak,
+                    'Server Seed: ' + serverSeed,
+                    'Client Seed: ' + clientSeed,
+                    'Nonce: ' + nonce,
+                    'Progress %: ' + progress.toFixed(4)
                 ].join(' | ')
             );
             // await betDelay(100); // Wait for 100ms before the next iteration
@@ -477,17 +478,16 @@ result.then((result) => {
     console.log('Complete!');
     console.log(
         [
-            'Total Bets: ' + result.betCount,
-            'Max Loss Streak: ' + result.maxLossStreak,
-            'Max Streak Nonce: ' + result.maxStreakNonce,
-            'Final Balance: ' + balance.toFixed(8),
             'Total Profit: ' + profit.toFixed(8),
-            'Total Wagered: ' + totalWagered.toFixed(8),
             'Win Ratio: ' + winRatio.toFixed(2) + '%',
             'Max Cum Z-Score: ' + result.maxCumZScore.toFixed(4),
             'Min Cum Z-Score: ' + result.minCumZScore.toFixed(4),
             'Max Cum P-Value: ' + result.maxCumPValue.toFixed(6),
-            'Min Cum P-Value: ' + result.minCumPValue.toFixed(6),            'Bets per Second: ' + betsPerSecond.toFixed(2)
+            'Min Cum P-Value: ' + result.minCumPValue.toFixed(6),
+            'Max Loss Streak: ' + result.maxLossStreak,
+            'Final Balance: ' + balance.toFixed(8),
+            'Total Bets: ' + result.betCount,
+            'Total Wagered: ' + totalWagered.toFixed(8)
         ].join(' | ')
     );
 });
