@@ -20,7 +20,8 @@ const startTime = Date.now();
 let chance = 50,
   baseBet = 1, // Initial bet amount (configurable parameter)
   unit = 1, // Unit size for D'Alembert increase/decrease (configurable)
-  balance = 1000000,
+  startBalance = 1000000,
+  balance = startBalance,
   // totalBets = 1680000,
   totalBets = 50000,
   houseEdge = 1,
@@ -253,61 +254,15 @@ async function analyzeBets(
       }
     }
 
-    console.log(
-      `isReversedStreak: ${isReversedStreak}, chesterStreak: ${chesterStreak}`
-    );
-
     if (isReversedStreak) {
       profit += (payOut - 1) * bet;
     } else {
       profit -= bet;
     }
+    balance = startBalance + profit;
 
-    // Determine betting amount and direction
-    // if (chesterStreak >= 6) {
-    //   betAgainstChester = 1; // Bet Chester will be wrong
-    //   if (bet < 0.01) bet = baseBet; // Start betting at baseBet
-    //   // bet += baseBet; // Start betting at baseBet
-    // } else if (chesterStreak <= -6) {
-    //   betAgainstChester = -1; // Bet Chester will be right
-    //   if (bet < 0.01) bet = baseBet; // Start betting at baseBet
-    //   // bet += baseBet; // Start betting at baseBet
-    // } else {
-    //   betAgainstChester = 0; // No bet
-    //   bet = 0.0; // No bet until streak reaches ±6
-    // }
-
-    // Process bet if bet > 0
-    if (betAgainstChester !== 0) {
-      // win = -1; // Default to loss
-      // // win = betAgainstChester === 1 ? !chesterWasCorrect : chesterWasCorrect; // Determine win based on Chester's guess
-      // if (betAgainstChester === 1 && !chesterWasCorrect) {
-      //   win = 1;
-      // }
-      // if (betAgainstChester === -1 && chesterWasCorrect) {
-      //   win = 1;
-      // }
-
-      if (win > 0) {
-        // winCount++;
-        // profit += bet * (payOut - 1); // Update profit
-        // balance += bet * payOut; // Update balance
-        // // currentStreak = 0;
-        // // Reset after win
-        // bet = 0; // Reset to no betting until next streak threshold
-        // // chesterStreak = 0; // Reset Chester's streak
-        // // betAgainstChester = 0; // Reset to betting Chester is right
-      } else if (win < 0) {
-        // profit -= bet; // Update profit
-        currentStreak++;
-        if (currentStreak > maxStreak) {
-          maxStreak = currentStreak;
-          maxStreakNonce = nonce;
-        }
-        // bet *= 2; // Martingale: double bet after loss
-      }
-    } else {
-      win = 0; // No bet placed, so win is NA
+    if (Math.abs(chesterStreak) > maxStreak) {
+      maxStreak = chesterStreak;
     }
 
     progress = (betCount / numberOfBets) * 100; // Update progress
@@ -329,7 +284,7 @@ async function analyzeBets(
         "Balance: " + balance.toFixed(8),
         "Total Wagered: " + totalWagered.toFixed(8),
         "Win Ratio: " + winRatio.toFixed(2),
-        "Current Streak: " + currentStreak,
+        "Current Streak: " + chesterStreak,
         "Worst Streak: " + maxStreak,
         "Server Seed: " + serverSeed,
         "Client Seed: " + clientSeed,
@@ -350,7 +305,7 @@ async function analyzeBets(
 
   return {
     betCount: betCount,
-    maxLossStreak: maxStreak,
+    maxStreak: maxStreak,
     maxStreakNonce: maxStreakNonce,
     maxCumZScore: maxCumZScore,
     minCumZScore: minCumZScore,
@@ -378,12 +333,12 @@ result.then((result) => {
   console.log(
     [
       "Total Profit: " + profit.toFixed(8),
-      "Win Ratio: " + winRatio.toFixed(2) + "%",
       "Max Cum Z-Score: " + result.maxCumZScore.toFixed(4),
       "Min Cum Z-Score: " + result.minCumZScore.toFixed(4),
       "Max Cum P-Value: " + result.maxCumPValue.toFixed(6),
       "Min Cum P-Value: " + result.minCumPValue.toFixed(6),
-      "Max Loss Streak: " + result.maxLossStreak,
+      "Max Streak: " + result.maxStreak,
+      "Win Ratio: " + winRatio.toFixed(2) + "%",
       "Final Balance: " + balance.toFixed(8),
       "Total Bets: " + result.betCount,
       "Total Wagered: " + totalWagered.toFixed(8),
