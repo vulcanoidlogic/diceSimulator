@@ -2,7 +2,7 @@
 const crypto = require("crypto");
 
 // Global boolean to control the use of random seeds
-const useRandomSeed = false;
+const useRandomSeed = true;
 const debugMode = true;
 // If useRandomSeed is false, use predefined values, otherwise generate random seeds
 const randomServerSeed = useRandomSeed
@@ -182,6 +182,7 @@ async function analyzeBets(
   let maxCumPValue = -Infinity;
   let minCumPValue = Infinity;
   let overCount = 0; // Track number of "over" outcomes
+  let isReversedStreak = false; // Flag to track if Chester's streak is reversed
 
   while (betCount < numberOfBets) {
     // Only deduct bet from balance if there was a bet placed
@@ -215,6 +216,7 @@ async function analyzeBets(
     // Update Chester's streak.  Positive streak for correct guesses, negative for incorrect
     betAgainstChester = 0; // No bet
     win = 0; // Default to no bet
+    isReversedStreak = false;
     if (chesterWasCorrect) {
       if (chesterStreak >= 6) {
         betAgainstChester = 1; // Bet Chester will be wrong
@@ -230,6 +232,7 @@ async function analyzeBets(
         win = 1;
         bet *= 2;
         chesterStreak = 1; // Reset to 1 if guess wrong streak ended
+        isReversedStreak = true; // Mark that Chester's streak was reversed
       }
     } else {
       if (chesterStreak <= -6) {
@@ -246,7 +249,18 @@ async function analyzeBets(
         win = 1;
         bet *= 2;
         chesterStreak = -1; // Reset to -1 if guess right streak ended
+        isReversedStreak = true; // Mark that Chester's streak was reversed
       }
+    }
+
+    console.log(
+      `isReversedStreak: ${isReversedStreak}, chesterStreak: ${chesterStreak}`
+    );
+
+    if (isReversedStreak) {
+      profit += (payOut - 1) * bet;
+    } else {
+      profit -= bet;
     }
 
     // Determine betting amount and direction
@@ -275,16 +289,16 @@ async function analyzeBets(
       // }
 
       if (win > 0) {
-        winCount++;
-        profit += bet * (payOut - 1); // Update profit
-        balance += bet * payOut; // Update balance
-        // currentStreak = 0;
-        // Reset after win
-        bet = 0; // Reset to no betting until next streak threshold
-        // chesterStreak = 0; // Reset Chester's streak
-        // betAgainstChester = 0; // Reset to betting Chester is right
+        // winCount++;
+        // profit += bet * (payOut - 1); // Update profit
+        // balance += bet * payOut; // Update balance
+        // // currentStreak = 0;
+        // // Reset after win
+        // bet = 0; // Reset to no betting until next streak threshold
+        // // chesterStreak = 0; // Reset Chester's streak
+        // // betAgainstChester = 0; // Reset to betting Chester is right
       } else if (win < 0) {
-        profit -= bet; // Update profit
+        // profit -= bet; // Update profit
         currentStreak++;
         if (currentStreak > maxStreak) {
           maxStreak = currentStreak;
@@ -324,6 +338,11 @@ async function analyzeBets(
       ].join(" | ")
     );
     // await betDelay(100); // Uncomment if delay is needed
+
+    if (isReversedStreak) {
+      // If Chester's streak was reversed, reset the bet to baseBet
+      bet = 0.0;
+    }
 
     nonce++;
     betCount++;
