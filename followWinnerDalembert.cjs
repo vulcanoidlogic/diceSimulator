@@ -230,7 +230,7 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
             console.log(
                 win ? '\x1b[32m%s\x1b[0m' : '\x1b[37m%s\x1b[0m',
                 [
-                    'Progress %: ' + progress.toFixed(6),
+                    'ProgressPct: ' + progress.toFixed(6),
                     'Bet Count: ' + betCount,
                     'Server Seed: ' + serverSeed,
                     'Client Seed: ' + clientSeed,
@@ -261,7 +261,7 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
                 const betsPerSecond = ((nonce - startNonce + 1) / runTimeSeconds).toLocaleString('en-US', { maximumFractionDigits: 2 });
                 console.log(
                     [
-                        'Progress %: ' + progress.toFixed(2),
+                        'ProgressPct: ' + progress.toFixed(2),
                         'Bet Count: ' + betCount,
                         'Max Bets: ' + numberOfBets,
                         'Balance: ' + balance.toFixed(4),
@@ -294,7 +294,7 @@ async function analyzeBets(serverSeed, clientSeed, startNonce, numberOfBets, ini
                     'Server Seed: ' + serverSeed,
                     'Client Seed: ' + clientSeed,
                     'Nonce: ' + nonce,
-                    'Progress %: ' + progress.toFixed(4)
+                    'ProgressPct: ' + progress.toFixed(4)
                 ].join(' | ')
             );
             // await betDelay(100); // Uncomment if delay is needed
