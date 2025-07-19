@@ -236,14 +236,7 @@ async function analyzeBets(
 
     // Process bet if bet > 0
     if (bet > 0) {
-      // Determine win based on betting strategy
-      if (betAgainstChester) {
-        // Bet Chester is wrong: win if Chester's guess is incorrect
-        win = !chesterWasCorrect;
-      } else {
-        // Bet Chester is right: win if Chester's guess is correct
-        win = chesterWasCorrect;
-      }
+      win = betAgainstChester ? !chesterWasCorrect : chesterWasCorrect; // Determine win based on Chester's guess
 
       console.log(`win=${win}`);
       if (win) {
