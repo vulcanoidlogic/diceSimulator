@@ -35,6 +35,11 @@ let chance = 50,
   betCount = 1,
   progress;
 
+// Utility function to introduce a delay
+function betDelay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Byte generator for cryptographic randomness
 function* byteGenerator(serverSeed, clientSeed, nonce, cursor) {
   let currentRound = Math.floor(cursor / 32);
@@ -53,11 +58,6 @@ function* byteGenerator(serverSeed, clientSeed, nonce, cursor) {
     currentRoundCursor = 0;
     currentRound += 1;
   }
-}
-
-// Utility function to introduce a delay
-function betDelay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Function to simulate a dice roll using server and client seeds, nonce, and cursor
@@ -154,8 +154,13 @@ function calculateCumulativeStats(overCount, totalRolls) {
 }
 
 // Helper function for Chester's random guess (unchanged)
-function chesterGuess() {
-  return Math.random() < 0.5; // true for "over" (≥ 50), false for "under" (< 50)
+function chesterGuess(nonce, cursor) {
+  const serverSeed = generateRandomServerSeed(64);
+  const clientSeed = generateRandomClientSeed(10);
+
+  const roll = getDiceRoll(serverSeed, clientSeed, nonce, cursor);
+  return roll > 50.0;
+  // return Math.random() > 0.5; // true for "over" (> 50), false for "under" (<= 50)
 }
 
 // Main function to analyze bets with Chester strategy
@@ -193,7 +198,7 @@ async function analyzeBets(
     }
 
     // Chester makes a new guess before every roll
-    chesterGuessDirection = chesterGuess(); // New random guess for next roll
+    chesterGuessDirection = chesterGuess(nonce, 0); // New random guess for next roll
     const roll = getDiceRoll(serverSeed, clientSeed, nonce, 0);
 
     if (roll >= 50) {
@@ -211,8 +216,8 @@ async function analyzeBets(
 
     // Determine if Chester's guess was correct
     const chesterWasCorrect =
-      (chesterGuessDirection && roll >= 50) ||
-      (!chesterGuessDirection && roll < 50);
+      (chesterGuessDirection && roll > 50) ||
+      (!chesterGuessDirection && roll <= 50);
 
     // Update Chester's streak.  Positive streak for correct guesses, negative for incorrect
     betAgainstChester = 0; // No bet
