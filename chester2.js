@@ -41,12 +41,25 @@ function getDiceRoll(serverSeed, clientSeed, nonce, cursor) {
   return roll;
 }
 
+// Function to generate random gap between 5 and 20
+function getRandomGap() {
+  return Math.floor(Math.random() * (20 - 5 + 1)) + 5;
+}
+
 // Generate seeds
 const clientSeed = generateSeed();
 const serverSeed = generateSeed();
 
 // Number of rolls to simulate
-const numRolls = 100;
+const numRolls = 1000;
+
+// Generate rows for Point markers
+const pointRows = [];
+let currentRow = getRandomGap();
+while (currentRow <= numRolls) {
+  pointRows.push(currentRow);
+  currentRow += getRandomGap();
+}
 
 // Initialize counters for summary and streak tracking
 let over50Count = 0;
@@ -55,7 +68,7 @@ let lastOutcome = null;
 const streaks = [];
 
 // Output CSV header
-console.log("Row,Dice Roll,OV-UN,Consecutive");
+console.log("Row,Dice Roll,OV-UN,Consecutive,Point");
 
 // Simulate rolls and output as CSV
 for (let i = 1; i <= numRolls; i++) {
@@ -76,7 +89,10 @@ for (let i = 1; i <= numRolls; i++) {
   }
   lastOutcome = outcome;
 
-  console.log(`${i},${roll},${outcome},${currentStreak}`);
+  // Set Point column
+  const point = pointRows.includes(i) ? "*" : "";
+
+  console.log(`${i},${roll},${outcome},${currentStreak},${point}`);
 }
 
 // Calculate percentage over 50
