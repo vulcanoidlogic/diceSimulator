@@ -13,7 +13,7 @@ const randomClientSeed = useRandomSeed
   ? generateRandomClientSeed(10)
   : "gtxW2CqnTj";
 // const startNonce = useRandomSeed ? Math.floor(Math.random() * 1000000) + 1 : 1;
-const startNonce = 1;
+const startNonce = 0;
 
 // Setting initial parameters for the simulation
 const startTime = Date.now();

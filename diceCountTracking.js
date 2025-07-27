@@ -38,7 +38,7 @@ function getDiceRoll(serverSeed, clientSeed, nonce, cursor) {
 
 // Count rolls "Under 50," "Over 50," and "Equal 50" over multiple plays
 function countRolls(serverSeed, clientSeed, numPlays) {
-  const counts = { below: 0, above: 0, middle: 0 };
+  const counts = { below: 0, above: 0, middle: 0, binaryOutcomes: "" };
   let overUnder = "";
   console.log(`Row,Value,OV-UN,Nonce`);
   for (let nonce = 0; nonce < numPlays; nonce++) {
@@ -46,9 +46,11 @@ function countRolls(serverSeed, clientSeed, numPlays) {
     if (roll < 50.0) {
       counts.below++;
       overUnder = "UN";
-    } else if (roll > 50.0) {
+      counts.binaryOutcomes += "0,";
+    } else if (roll >= 50.0) {
       counts.above++;
       overUnder = "OV";
+      counts.binaryOutcomes += "1,";
     } else {
       counts.middle++; // Exactly 50.00
       overUnder = "EQ";
@@ -59,10 +61,19 @@ function countRolls(serverSeed, clientSeed, numPlays) {
 }
 
 // Start
+// July 26, 2025 nasty under seed
+// const serverSeed =
+//   "b1b696cca462c7198bb7002421e071afa898cc5002b8ef398d3a8be33ebcf66a";
+// const clientSeed = "WtlEiQKYqB";
+// const serverSeed =
+//   "99590e90f0872355787c8eda97d318e777c2adf9e000f66f582d9f2d900591dc";
+// const clientSeed = "xXG7tg66wb";
+// const serverSeed =
+//   "feb2276e511e619bf7c34e3026a26bbb1d7248da3a25378ef0fcaac36a580904";
 const serverSeed =
-  "b1b696cca462c7198bb7002421e071afa898cc5002b8ef398d3a8be33ebcf66a";
-const clientSeed = "WtlEiQKYqB";
-const numPlays = 15000;
+  "bd3bf42b0460e7fcee3cc7c72c8f6ee62a344db67a88cd1035601e0ebabfbad6";
+const clientSeed = "tyc6G63pVx";
+const numPlays = 10000;
 
 const result = countRolls(serverSeed, clientSeed, numPlays);
 console.log(`Results for ${numPlays} rolls:`);
@@ -82,3 +93,4 @@ console.log(
     100
   ).toFixed(2)}%)`
 );
+console.log(`${result.binaryOutcomes}`);
