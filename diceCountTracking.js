@@ -1,4 +1,9 @@
-const crypto = require("crypto"); // Node.js crypto module
+// diceCountTracking.js
+// CLI-based Node.js script to track dice outcomes mimicking Stake.us with CSV output
+
+const crypto = require("crypto");
+
+let outcomes = [];
 
 // Byte generator for cryptographic randomness
 function* byteGenerator(serverSeed, clientSeed, nonce, cursor) {
@@ -20,77 +25,112 @@ function* byteGenerator(serverSeed, clientSeed, nonce, cursor) {
   }
 }
 
-// Simulate a single dice roll
-function getDiceRoll(serverSeed, clientSeed, nonce, cursor) {
-  const rng = byteGenerator(serverSeed, clientSeed, nonce, cursor);
+// Modified to generate a dice roll in [0, 100)
+function getDiceResult(serverSeed, clientSeed, nonce) {
+  const rng = byteGenerator(serverSeed, clientSeed, nonce, 0);
   const bytes = [];
   for (let i = 0; i < 4; i++) {
     bytes.push(rng.next().value);
   }
-
   const floatResult = bytes.reduce(
     (acc, value, i) => acc + value / Math.pow(256, i + 1),
     0
   );
-  const roll = Math.floor(floatResult * 10001) / 100;
-  return roll;
+  return floatResult * 100; // Scale to [0, 100)
 }
 
-// Count rolls "Under 50," "Over 50," and "Equal 50" over multiple plays
-function countRolls(serverSeed, clientSeed, numPlays) {
-  const counts = { below: 0, above: 0, middle: 0, binaryOutcomes: "" };
-  let overUnder = "";
-  console.log(`Row,Value,OV-UN,Nonce`);
-  for (let nonce = 0; nonce < numPlays; nonce++) {
-    const roll = getDiceRoll(serverSeed, clientSeed, nonce, 0); // cursor = 0 for single roll per play
-    if (roll < 50.0) {
-      counts.below++;
-      overUnder = "UN";
-      counts.binaryOutcomes += "0,";
-    } else if (roll >= 50.0) {
-      counts.above++;
-      overUnder = "OV";
-      counts.binaryOutcomes += "1,";
-    } else {
-      counts.middle++; // Exactly 50.00
-      overUnder = "EQ";
+// Function to calculate probability of sequences
+function hasLowProbabilitySequence(outcomes) {
+  if (outcomes.length < 10) return false;
+
+  // Check last 20 outcomes
+  const window = outcomes.slice(-20);
+
+  // Check for 10 consecutive Over or Under
+  for (let i = 0; i <= window.length - 10; i++) {
+    const slice = window.slice(i, i + 10);
+    if (
+      slice.every((outcome) => outcome.result === "Over") ||
+      slice.every((outcome) => outcome.result === "Under")
+    ) {
+      return true;
     }
-    console.log(`${nonce + 1},${roll},${overUnder},${nonce}`);
   }
-  return counts;
+
+  // Check for 5 consecutive high (>=75) or low (<=25) rolls
+  const consecutiveThreshold25 = 6;
+  for (let i = 0; i <= window.length - consecutiveThreshold25; i++) {
+    const slice = window.slice(i, i + consecutiveThreshold25);
+    if (
+      slice.every((outcome) => outcome.number >= 75) ||
+      slice.every((outcome) => outcome.number <= 25)
+    ) {
+      return true;
+    }
+  }
+
+  // Check for 5 consecutive high (>=90) or low (<=10) rolls
+  const consecutiveThreshold10 = 4;
+  for (let i = 0; i <= window.length - consecutiveThreshold10; i++) {
+    const slice = window.slice(i, i + consecutiveThreshold10);
+    if (
+      slice.every((outcome) => outcome.number >= 90) ||
+      slice.every((outcome) => outcome.number <= 10)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
-// Start
-// July 26, 2025 nasty under seed
-// const serverSeed =
-//   "b1b696cca462c7198bb7002421e071afa898cc5002b8ef398d3a8be33ebcf66a";
-// const clientSeed = "WtlEiQKYqB";
-// const serverSeed =
-//   "99590e90f0872355787c8eda97d318e777c2adf9e000f66f582d9f2d900591dc";
-// const clientSeed = "xXG7tg66wb";
-// const serverSeed =
-//   "feb2276e511e619bf7c34e3026a26bbb1d7248da3a25378ef0fcaac36a580904";
-const serverSeed =
-  "bd3bf42b0460e7fcee3cc7c72c8f6ee62a344db67a88cd1035601e0ebabfbad6";
-const clientSeed = "tyc6G63pVx";
-const numPlays = 10000;
+// Function to log a single outcome as a CSV line
+function logOutcome(outcome, index) {
+  const lowProb = hasLowProbabilitySequence(outcomes.slice(0, index + 1))
+    ? "*"
+    : "";
+  const csvLine = `${index + 1},${outcome.number.toFixed(2)},${
+    outcome.result === "Over" ? "OV" : "UN"
+  },${lowProb}`;
+  console.log(csvLine);
+}
 
-const result = countRolls(serverSeed, clientSeed, numPlays);
-console.log(`Results for ${numPlays} rolls:`);
-console.log(
-  `Below 50.00: ${result.below} (${((result.below / numPlays) * 100).toFixed(
-    2
-  )}%)`
-);
-console.log(
-  `Above 50.00: ${result.above} (${((result.above / numPlays) * 100).toFixed(
-    2
-  )}%)`
-);
-console.log(
-  `Exactly 50.00: ${result.middle} (${(
-    (result.middle / numPlays) *
-    100
-  ).toFixed(2)}%)`
-);
-console.log(`${result.binaryOutcomes}`);
+// Main function to process a dice roll
+function processDiceRoll(number) {
+  const isOver = number > 50; // Adjust threshold if needed
+  const outcome = {
+    number: number,
+    result: isOver ? "Over" : "Under",
+  };
+
+  outcomes.push(outcome);
+
+  // Keep only the last 20 outcomes
+  if (outcomes.length > 20) {
+    outcomes = outcomes.slice(-20);
+  }
+
+  logOutcome(outcome, outcomes.length - 1);
+}
+
+// Simulate dice rolls (replace with your own loop or trigger)
+function simulateDiceRolls(
+  count = 20,
+  serverSeed = "defaultServerSeed",
+  clientSeed = "defaultClientSeedExample"
+) {
+  // Print CSV header
+  console.log("Row,Number,OV/UN,LOW_PROB");
+  for (let i = 0; i < count; i++) {
+    const nonce = i; // Increment nonce for each roll
+    const number = getDiceResult(serverSeed, clientSeed, nonce);
+    processDiceRoll(number);
+  }
+}
+
+// Run the simulation
+simulateDiceRolls(
+  10000,
+  "bd3bf42b0460e7fcee3cc7c72c8f6ee62a344db67a88cd1035601e0ebabfbad6",
+  "tyc6G63pVx"
+); // Run 20 rolls for testing
