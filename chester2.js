@@ -47,8 +47,11 @@ function getRandomGap() {
 }
 
 // Generate seeds
-const clientSeed = generateSeed();
-const serverSeed = generateSeed();
+const clientSeed = "WtlEiQKYqB";
+const serverSeed =
+  "b1b696cca462c7198bb7002421e071afa898cc5002b8ef398d3a8be33ebcf66a";
+// const clientSeed = generateSeed();
+// const serverSeed = generateSeed();
 
 // Number of rolls to simulate
 const numRolls = 1000;
