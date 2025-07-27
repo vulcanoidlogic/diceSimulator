@@ -20,9 +20,9 @@ function* byteGenerator(serverSeed, clientSeed, nonce, cursor) {
   }
 }
 
-// Simulate a single coin flip event
-function getFlipResult(serverSeed, clientSeed, nonce, cursor) {
-  const rng = byteGenerator(serverSeed, clientSeed, nonce, cursor);
+// Simulate a single coin flip for a play
+function getFlipResult(serverSeed, clientSeed, nonce) {
+  const rng = byteGenerator(serverSeed, clientSeed, nonce, 0); // cursor = 0 for one flip
   const bytes = [];
   for (let i = 0; i < 4; i++) {
     bytes.push(rng.next().value);
@@ -34,39 +34,32 @@ function getFlipResult(serverSeed, clientSeed, nonce, cursor) {
   return floatResult <= 0.5 ? "tails" : "heads";
 }
 
-// Simulate one play (20 flips) for a given nonce
-function simulateFlipPlay(serverSeed, clientSeed, nonce) {
-  const results = [];
-  for (let cursor = 0; cursor < 20; cursor++) {
-    const result = getFlipResult(serverSeed, clientSeed, nonce, cursor);
-    results.push(result);
-  }
-  return results;
-}
-
-// Count Tails and Heads over multiple plays
+// Count Heads and Tails over multiple plays
 function countFlips(serverSeed, clientSeed, numPlays) {
-  const counts = { tails: 0, heads: 0 };
+  const counts = { heads: 0, tails: 0 };
+  console.log(`Row,Value,Nonce`);
   for (let nonce = 0; nonce < numPlays; nonce++) {
-    const playResults = simulateFlipPlay(serverSeed, clientSeed, nonce);
-    playResults.forEach((result) => {
-      counts[result]++;
-    });
+    const result = getFlipResult(serverSeed, clientSeed, nonce);
+    counts[result]++;
+    console.log(`${nonce + 1},${result},${nonce}`);
   }
-  return counts;
+  const headsPercentage = ((counts.heads / numPlays) * 100).toFixed(2);
+  const tailsPercentage = ((counts.tails / numPlays) * 100).toFixed(2);
+  return {
+    heads: counts.heads,
+    tails: counts.tails,
+    headsPercentage: headsPercentage,
+    tailsPercentage: tailsPercentage,
+  };
 }
 
 // Example usage
-const serverSeed = "exampleServerSeed1234567890abcdef1234567890abcdef";
-const clientSeed = "exampleClientSeed";
-const numPlays = 5000; // 5,000 plays = 5,000 * 20 = 100,000 flips
+const serverSeed =
+  "b1b696cca462c7198bb7002421e071afa898cc5002b8ef398d3a8be33ebcf66a";
+const clientSeed = "WtlEiQKYqB";
+const numPlays = 10000; // 10,000 plays = 10,000 flips
 
 const result = countFlips(serverSeed, clientSeed, numPlays);
-const totalFlips = numPlays * 20;
-console.log(`Results for ${numPlays} plays (${totalFlips} flips):`);
-console.log(
-  `Tails: ${result.tails} (${((result.tails / totalFlips) * 100).toFixed(2)}%)`
-);
-console.log(
-  `Heads: ${result.heads} (${((result.heads / totalFlips) * 100).toFixed(2)}%)`
-);
+console.log(`Results for ${numPlays} flips:`);
+console.log(`Heads: ${result.heads} (${result.headsPercentage}%)`);
+console.log(`Tails: ${result.tails} (${result.tailsPercentage}%)`);
