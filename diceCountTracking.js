@@ -39,25 +39,30 @@ function getDiceRoll(serverSeed, clientSeed, nonce, cursor) {
 // Count rolls "Under 50," "Over 50," and "Equal 50" over multiple plays
 function countRolls(serverSeed, clientSeed, numPlays) {
   const counts = { below: 0, above: 0, middle: 0 };
+  let overUnder = "";
+  console.log(`Row,Value,OV-UN,Nonce`);
   for (let nonce = 0; nonce < numPlays; nonce++) {
     const roll = getDiceRoll(serverSeed, clientSeed, nonce, 0); // cursor = 0 for single roll per play
-    console.log(`Roll ${nonce}: ${roll}`);
     if (roll < 50.0) {
       counts.below++;
+      overUnder = "UN";
     } else if (roll > 50.0) {
       counts.above++;
+      overUnder = "OV";
     } else {
       counts.middle++; // Exactly 50.00
+      overUnder = "EQ";
     }
+    console.log(`${nonce + 1},${roll},${overUnder},${nonce}`);
   }
   return counts;
 }
 
-// Example usage
+// Start
 const serverSeed =
   "b1b696cca462c7198bb7002421e071afa898cc5002b8ef398d3a8be33ebcf66a";
 const clientSeed = "WtlEiQKYqB";
-const numPlays = 10000; // 10,000 plays = 10,000 rolls
+const numPlays = 15000;
 
 const result = countRolls(serverSeed, clientSeed, numPlays);
 console.log(`Results for ${numPlays} rolls:`);
