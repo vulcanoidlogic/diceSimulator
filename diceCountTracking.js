@@ -77,23 +77,30 @@ function reversalResult(outcomes) {
 
   const last = recentOutcomes[recentOutcomes.length - 1];
   const secondLast = recentOutcomes[recentOutcomes.length - 2];
+
+  let displayNumber = secondLast.number.toFixed(2);
+  if (secondLast.number <= 50) {
+    displayNumber = (100 - secondLast.number).toFixed(2);
+  }
   if (
     (secondLast.result === "Over" && last.number < secondLast.number) ||
     (secondLast.result === "Under" && last.number > secondLast.number)
   ) {
-    return "W";
+    const pl = 100.0 / parseFloat(displayNumber, 10) - 1.02;
+    return `W,1,${displayNumber},${pl.toFixed(2)}`;
   } else {
-    return "L";
+    const pl = -1;
+    return `L,-1,${displayNumber},${pl}`;
   }
 }
 
 // Function to log a single outcome as a CSV line
 function logOutcome(outcome, index) {
   const lowProb = hasLowProbabilitySequence(outcomes) ? "*" : "";
-  const reversalResultValue = reversalResult(outcomes);
+  const reversalResultItems = reversalResult(outcomes);
   const csvLine = `${index + 1},${outcome.number.toFixed(2)},${
     outcome.result === "Over" ? "OV" : "UN"
-  },${lowProb},${reversalResultValue}`;
+  },${lowProb},${reversalResultItems}`;
   console.log(csvLine);
 }
 
@@ -116,7 +123,9 @@ function simulateDiceRolls(
   clientSeed = "clientSeedExample"
 ) {
   // Print CSV header
-  console.log("Row,Number,OV/UN,LOW_PROB,REVERSAL_RESULT");
+  console.log(
+    "Row,Number,OV/UN,LOW_PROB,REVERSE_WL,REVERSE_VAL,NEXT_GUESS,CURRENT_PL,CUME_PL"
+  );
   for (let i = 0; i < count; i++) {
     const nonce = i; // Increment nonce for each roll
     const number = getDiceResult(serverSeed, clientSeed, nonce);
