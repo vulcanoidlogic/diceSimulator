@@ -1,9 +1,65 @@
 // diceCountTracking.js
 // CLI-based Node.js script to track dice outcomes mimicking Stake.us with CSV output
-
 const crypto = require("crypto");
+class DiceRoll {
+  constructor() {
+    this.nonce = 0;
+    this.row = 1;
+    this.number = 0.0;
+    this.ovUnEq50 = "EQ"; // OV, UN
+    this.isLowProbability = "";
+    this.reverse50WL = ""; // W, L
+    this.reverse50Val = 0; // 1, -1
+    this.nextPlay = 0.0; // number from previous roll
+    this.plReverse50 = 0.0;
+  }
+
+  getNumberDisplay() {
+    return this.number.toFixed(2);
+  }
+
+  getNextPlayDisplay() {
+    return this.nextPlay.toFixed(2);
+  }
+
+  getPLReverse50Display() {
+    return this.plReverse50.toFixed(2);
+  }
+
+  getCSVLine() {
+    const csvLine = `${this.row},${this.getNumberDisplay()},${this.ovUnEq50},${
+      this.isLowProbability
+    },${this.reverse50WL},${
+      this.reverse50Val
+    },${this.getNextPlayDisplay()},${this.getPLReverse50Display()}`;
+    return csvLine;
+  }
+}
+
+class DiceRollManager {
+  constructor() {
+    this.diceRolls = [];
+    this.initialize();
+  }
+
+  initialize() {
+    console.log("Initialize DiceRollManager");
+  }
+
+  createDiceRoll() {
+    const diceRoll = new DiceRoll();
+    diceRoll.row = this.diceRolls.length + 1;
+    this.diceRolls.push(diceRoll);
+    return diceRoll;
+  }
+
+  getCount() {
+    return this.diceRolls.length;
+  }
+}
 
 let outcomes = [];
+let manager = new DiceRollManager();
 
 // Byte generator for cryptographic randomness
 function* byteGenerator(serverSeed, clientSeed, nonce, cursor) {
@@ -70,7 +126,7 @@ function hasLowProbabilitySequence(outcomes) {
   return false;
 }
 
-function reversalResult(outcomes) {
+function reversalResultOLD(outcomes) {
   // Check for reversal patterns in the last 20 outcomes}
   const recentOutcomes = outcomes.slice(-2);
   if (recentOutcomes.length < 2) return "";
@@ -94,26 +150,46 @@ function reversalResult(outcomes) {
   }
 }
 
-// Function to log a single outcome as a CSV line
-function logOutcome(outcome, index) {
-  const lowProb = hasLowProbabilitySequence(outcomes) ? "*" : "";
-  const reversalResultItems = reversalResult(outcomes);
-  const csvLine = `${index + 1},${outcome.number.toFixed(2)},${
-    outcome.result === "Over" ? "OV" : "UN"
-  },${lowProb},${reversalResultItems}`;
+function assignReversalResult(newestRoll) {
+  // Check for reversal patterns in the last 20 outcomes}
+  const recentOutcomes = manager.diceRolls.slice(-2);
+  if (recentOutcomes.length < 2) return;
+
+  const secondNewestRoll = recentOutcomes[recentOutcomes.length - 2];
+
+  newestRoll.nextPlay = secondNewestRoll.number;
+  if (secondNewestRoll.number <= 50) {
+    newestRoll.nextPlay = 100 - secondNewestRoll.number;
+  }
+
+  if (
+    (secondNewestRoll.ovUnEq50 === "OV" &&
+      newestRoll.number <= secondNewestRoll.number) ||
+    (secondNewestRoll.ovUnEq50 === "UN" &&
+      newestRoll.number > secondNewestRoll.number)
+  ) {
+    newestRoll.reverse50WL = "W";
+    newestRoll.reverse50Val = 1;
+    newestRoll.plReverse50 = 100.0 / newestRoll.nextPlay - 1.02;
+  } else {
+    newestRoll.reverse50WL = "L";
+    newestRoll.reverse50Val = -1;
+    newestRoll.plReverse50 = -1;
+  }
+}
+
+function logDiceRoll(roll) {
+  const csvLine = roll.getCSVLine();
   console.log(csvLine);
 }
 
 // Main function to process a dice roll
-function processDiceRoll(number) {
-  const isOver = number > 50; // Adjust threshold if needed
-  const outcome = {
-    number: number,
-    result: isOver ? "Over" : "Under",
-  };
-
-  outcomes.push(outcome);
-  logOutcome(outcome, outcomes.length - 1);
+function processDiceRoll(roll) {
+  const isOver = roll.number > 50; // Adjust threshold if needed
+  roll.ovUnEq50 = isOver ? "OV" : "UN";
+  // const lowProb = hasLowProbabilitySequence(outcomes) ? "*" : "";
+  assignReversalResult(roll);
+  logDiceRoll(roll);
 }
 
 // Simulate dice rolls (replace with your own loop or trigger)
@@ -128,8 +204,10 @@ function simulateDiceRolls(
   );
   for (let i = 0; i < count; i++) {
     const nonce = i; // Increment nonce for each roll
-    const number = getDiceResult(serverSeed, clientSeed, nonce);
-    processDiceRoll(number);
+    const roll = manager.createDiceRoll();
+    roll.nonce = nonce;
+    roll.number = getDiceResult(serverSeed, clientSeed, roll.nonce);
+    processDiceRoll(roll);
   }
 }
 
@@ -175,7 +253,7 @@ function simulateDiceRolls(
 //   "TzSi6p9EPy"
 // );
 simulateDiceRolls(
-  10000,
+  20,
   "061bb8bc2bf803f9ce756cc4afbf868c7bc89667ef02462e7fa35a6134800644",
   "L8cdf9Tg3e"
 );
