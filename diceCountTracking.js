@@ -14,6 +14,13 @@ class DiceRoll {
     this.plReverse50 = 0.0;
   }
 
+  assignNumber(number) {
+    this.number = number;
+
+    const isOver = this.number > 50; // Adjust threshold if needed
+    this.ovUnEq50 = isOver ? "OV" : "UN";
+  }
+
   getNumberDisplay() {
     return this.number.toFixed(2);
   }
@@ -58,7 +65,6 @@ class DiceRollManager {
   }
 }
 
-let outcomes = [];
 let manager = new DiceRollManager();
 
 // Byte generator for cryptographic randomness
@@ -96,66 +102,40 @@ function getDiceResult(serverSeed, clientSeed, nonce) {
 }
 
 // Function to calculate probability of sequences
-function hasLowProbabilitySequence(outcomes) {
+function assignHasLowProbabilitySequence(newestRoll) {
   // Use only the last 20 outcomes for probability checks
-  const recentOutcomes = outcomes.slice(-20);
-  if (recentOutcomes.length < 10) return false;
+  const recentRolls = manager.diceRolls.slice(-20);
+  if (recentRolls.length < 10) return false;
 
   // Check for 10 consecutive Over or Under
-  for (let i = 0; i <= recentOutcomes.length - 10; i++) {
-    const slice = recentOutcomes.slice(i, i + 10);
+  for (let i = 0; i <= recentRolls.length - 10; i++) {
+    const slice = recentRolls.slice(i, i + 10);
     if (
-      slice.every((outcome) => outcome.result === "Over") ||
-      slice.every((outcome) => outcome.result === "Under")
+      slice.every((roll) => roll.ovUnEq50 === "OV") ||
+      slice.every((roll) => roll.ovUnEq50 === "UN")
     ) {
-      return true;
+      newestRoll.isLowProbability = "CON_10";
     }
   }
 
   // Check for 5 consecutive high (>=75) or low (<=25) rolls
-  for (let i = 0; i <= recentOutcomes.length - 5; i++) {
-    const slice = recentOutcomes.slice(i, i + 5);
+  for (let i = 0; i <= recentRolls.length - 5; i++) {
+    const slice = recentRolls.slice(i, i + 5);
     if (
-      slice.every((outcome) => outcome.number >= 75) ||
-      slice.every((outcome) => outcome.number <= 25)
+      slice.every((roll) => roll.number >= 75) ||
+      slice.every((roll) => roll.number <= 25)
     ) {
-      return true;
+      newestRoll.isLowProbability = "CON_25_75";
     }
-  }
-
-  return false;
-}
-
-function reversalResultOLD(outcomes) {
-  // Check for reversal patterns in the last 20 outcomes}
-  const recentOutcomes = outcomes.slice(-2);
-  if (recentOutcomes.length < 2) return "";
-
-  const last = recentOutcomes[recentOutcomes.length - 1];
-  const secondLast = recentOutcomes[recentOutcomes.length - 2];
-
-  let displayNumber = secondLast.number.toFixed(2);
-  if (secondLast.number <= 50) {
-    displayNumber = (100 - secondLast.number).toFixed(2);
-  }
-  if (
-    (secondLast.result === "Over" && last.number < secondLast.number) ||
-    (secondLast.result === "Under" && last.number > secondLast.number)
-  ) {
-    const pl = 100.0 / parseFloat(displayNumber, 10) - 1.02;
-    return `W,1,${displayNumber},${pl.toFixed(2)}`;
-  } else {
-    const pl = -1;
-    return `L,-1,${displayNumber},${pl}`;
   }
 }
 
 function assignReversalResult(newestRoll) {
   // Check for reversal patterns in the last 20 outcomes}
-  const recentOutcomes = manager.diceRolls.slice(-2);
-  if (recentOutcomes.length < 2) return;
+  const recentRolls = manager.diceRolls.slice(-2);
+  if (recentRolls.length < 2) return;
 
-  const secondNewestRoll = recentOutcomes[recentOutcomes.length - 2];
+  const secondNewestRoll = recentRolls[recentRolls.length - 2];
 
   newestRoll.nextPlay = secondNewestRoll.number;
   if (secondNewestRoll.number <= 50) {
@@ -185,9 +165,7 @@ function logDiceRoll(roll) {
 
 // Main function to process a dice roll
 function processDiceRoll(roll) {
-  const isOver = roll.number > 50; // Adjust threshold if needed
-  roll.ovUnEq50 = isOver ? "OV" : "UN";
-  // const lowProb = hasLowProbabilitySequence(outcomes) ? "*" : "";
+  assignHasLowProbabilitySequence(roll);
   assignReversalResult(roll);
   logDiceRoll(roll);
 }
@@ -206,7 +184,7 @@ function simulateDiceRolls(
     const nonce = i; // Increment nonce for each roll
     const roll = manager.createDiceRoll();
     roll.nonce = nonce;
-    roll.number = getDiceResult(serverSeed, clientSeed, roll.nonce);
+    roll.assignNumber(getDiceResult(serverSeed, clientSeed, roll.nonce));
     processDiceRoll(roll);
   }
 }
@@ -253,7 +231,7 @@ function simulateDiceRolls(
 //   "TzSi6p9EPy"
 // );
 simulateDiceRolls(
-  20,
+  10000,
   "061bb8bc2bf803f9ce756cc4afbf868c7bc89667ef02462e7fa35a6134800644",
   "L8cdf9Tg3e"
 );
