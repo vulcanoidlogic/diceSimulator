@@ -12,6 +12,7 @@ class DiceRoll {
     this.reverse50Val = 0; // 1, -1
     this.nextPlay = 0.0; // number from previous roll
     this.plReverse50 = 0.0;
+    this.plReverse50Cume = 0.0;
   }
 
   assignNumber(number) {
@@ -33,12 +34,16 @@ class DiceRoll {
     return this.plReverse50.toFixed(2);
   }
 
+  getPLReverse50CumeDisplay() {
+    return this.plReverse50Cume.toFixed(2);
+  }
+
   getCSVLine() {
     const csvLine = `${this.row},${this.getNumberDisplay()},${this.ovUnEq50},${
       this.isLowProbability
     },${this.reverse50WL},${
       this.reverse50Val
-    },${this.getNextPlayDisplay()},${this.getPLReverse50Display()}`;
+    },${this.getNextPlayDisplay()},${this.getPLReverse50Display()},${this.getPLReverse50CumeDisplay()}`;
     return csvLine;
   }
 }
@@ -49,9 +54,7 @@ class DiceRollManager {
     this.initialize();
   }
 
-  initialize() {
-    console.log("Initialize DiceRollManager");
-  }
+  initialize() {}
 
   createDiceRoll() {
     const diceRoll = new DiceRoll();
@@ -130,7 +133,7 @@ function assignHasLowProbabilitySequence(newestRoll) {
   }
 }
 
-function assignReversalResult(newestRoll) {
+function assignReversal50Result(newestRoll) {
   // Check for reversal patterns in the last 20 outcomes}
   const recentRolls = manager.diceRolls.slice(-2);
   if (recentRolls.length < 2) return;
@@ -156,6 +159,8 @@ function assignReversalResult(newestRoll) {
     newestRoll.reverse50Val = -1;
     newestRoll.plReverse50 = -1;
   }
+  newestRoll.plReverse50Cume =
+    secondNewestRoll.plReverse50Cume + newestRoll.plReverse50;
 }
 
 function logDiceRoll(roll) {
@@ -166,7 +171,7 @@ function logDiceRoll(roll) {
 // Main function to process a dice roll
 function processDiceRoll(roll) {
   assignHasLowProbabilitySequence(roll);
-  assignReversalResult(roll);
+  assignReversal50Result(roll);
   logDiceRoll(roll);
 }
 
