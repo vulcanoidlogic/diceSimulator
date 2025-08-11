@@ -117,7 +117,7 @@ function assignHasLowProbabilitySequence(newestRoll) {
       slice.every((roll) => roll.ovUnEq50 === "OV") ||
       slice.every((roll) => roll.ovUnEq50 === "UN")
     ) {
-      newestRoll.isLowProbability = "CON_10";
+      newestRoll.isLowProbability = "CON_10*";
     }
   }
 
@@ -128,9 +128,115 @@ function assignHasLowProbabilitySequence(newestRoll) {
       slice.every((roll) => roll.number >= 75) ||
       slice.every((roll) => roll.number <= 25)
     ) {
-      newestRoll.isLowProbability = "CON_25_75";
+      newestRoll.isLowProbability = "CON_25_75*";
     }
   }
+}
+
+// 10 Highly Improbable Outcomes in Stake.us Dice
+// #	Description	Estimated Probability	Notes
+// 1	Rolling 20 consecutive values over 50	~1 in 1,048,576 (0.000095%)	Each roll has a 50% chance. 0.5^20.
+// 2	Hitting exactly 49.50 twenty times in a row	1 in 10,000^20	Borderline impossible; each exact roll is 1 in 10,000.
+// 3	Setting a 2% win chance and hitting 5 times in a row	~1 in 3.2 million	0.02^5 = 0.00000032 (0.000032%).
+// 4	Alternating high/low outcomes for 30 consecutive rolls (e.g., over/under 50 repeatedly)	~1 in 1 billion	Pattern probability = 0.5^29 (first roll free).
+// 5	Rolling 10 consecutive values within the 0.01–1.00 range	1 in 10^20	Each roll has a 1% chance (0.01–1.00 = 1 out of 100). 0.01^10.
+// 6	Triggering a win with a 0.10% win chance	1 in 1,000	Achievable but very rare; many players never see it.
+// 7	Rolling a palindrome pattern like 12.34 → 43.21 → 12.34	Extremely rare	Random, but notable and unlikely pattern.
+// 8	Winning 100 times in a row with a 90% win chance	~1 in 1 in 2.7 million	0.9^100 ≈ 0.00000037
+// 9	Getting every tenth roll to be a win over a 500-roll session	Combinatorially rare	Requires periodic structure across many trials.
+// 10	Matching Stake's server seed roll to a locally pre-seeded hash guess	Practically 0%	Like hitting a cryptographic jackpot — infeasible unless seed is leaked.
+
+// #	Description	Probability Estimate	Notes
+// 1	Every 5th roll alternates (e.g., U,O,U,O,U...) for 500 rolls	~1 in 2³³ (1 in ~8.6 billion)	Every 5th roll must toggle between O/U.
+// 2	All prime-numbered rolls are "Under" in a 200-roll session	~1 in 2⁴⁶ (1 in 7e13)	46 primes ≤ 200 → all must be "U"
+// 3	Mirror symmetry: First 100 rolls match last 100 in reverse	1 in 2¹⁰⁰	Like palindromes in outcome
+// 4	Only one "Under" in 1000 rolls (the rest are Over)	1000 × (0.5)^999 ≈ 1e-301	Almost impossible
+// 5	Alternating wins and losses for 50 rolls (perfect zig-zag)	1 in 2⁴⁹ ≈ 1 in 5.6e14	Assuming win/loss is 50%
+// 6	Repeating cycle of 3 (e.g., O-U-O, repeated ~166×)	1 in 2¹⁶⁵ ≈ 1e49	Forces rigid structure
+// 7	Perfect 4x4 grid pattern: In every block of 4 rolls, exactly 2 Over & 2 Under	~1 in 6e72	Every 4-roll block has to have perfect balance
+// 8	The number of Overs equals the number of Unders over 1000 rolls AND they alternate every 2	1 in absurd	Each pair must be one O and one U, while also keeping global balance
+// 9	"Rolling staircase": each Over has a value 1% higher than the last Over	Depends on decimal RNG	Requires value memory, not just over/under — very rare
+// 10	Roll 1000 times with zero repeat 6-roll sequences	~1 in 0 (impossible after ~300 rolls)	Birthday paradox kicks in — repeats inevitable
+
+// Every Fibonacci-numbered roll is Over
+// The 6-roll pattern of the first 6 rolls repeats exactly every 6 rolls
+// No roll matches the previous roll's outcome for 500 rolls (anti-streak)
+
+// ...
+
+// Exact 6-roll pattern repeated 4 times in a row
+// Every 10th roll is Over
+// First 100 rolls mirror the last 100 in reverse
+// Rolling alternating Over/Under for 50+ rolls
+// All primes ≤ N are Under
+// Every block of 4 rolls has 2 Overs, 2 Unders
+// Any user-defined 10-roll pattern appearing N+ times
+// No repeated 6-roll pattern in 1,000,000 rolls
+
+// 10 Consecutive Rolls of "Over 98" (2% Win Probability)
+// Specific Sequence of 20 Alternating Outcomes (e.g., OV, UN, OV, UN, ..., OV, UN)
+// 15 Consecutive Rolls Landing in a 5% Range (e.g., Over 95)
+// Specific 10-Roll Sequence with 2% Range (e.g., Over 98 for 5, Under 2 for 5)
+// 12 Consecutive Rolls in a 10% Range (e.g., Over 90)
+
+function simulateRepeating6x4(numRolls = 1_000_000) {
+  let hits = 0;
+  const history = [];
+
+  for (let i = 0; i < numRolls; i++) {
+    const outcome = rollDice() > 50 ? "O" : "U";
+    history.push(outcome);
+
+    if (history.length >= 24) {
+      const last24 = history.slice(-24);
+      const base = last24.slice(0, 6).join("");
+      const valid = [1, 2, 3].every((i) => {
+        return last24.slice(i * 6, i * 6 + 6).join("") === base;
+      });
+      if (valid) {
+        hits++;
+      }
+    }
+  }
+
+  console.log(`6x4 pattern match: ${hits} in ${numRolls} rolls`);
+}
+
+function simulateEvery10thRollOver(numRolls = 1_000_000) {
+  let matchCount = 0;
+
+  for (let i = 0; i <= numRolls - 500; i++) {
+    let success = true;
+    for (let j = 0; j < 50; j++) {
+      if (rollDice() <= 50) {
+        success = false;
+        break;
+      }
+    }
+    if (success) {
+      matchCount++;
+    }
+  }
+
+  console.log(`Every 10th roll over: ${matchCount} times`);
+}
+
+function simulateCustom10RollPattern(targetPattern, numRolls = 1_000_000) {
+  const patternStr = targetPattern.join("");
+  let hits = 0;
+  const buffer = [];
+
+  for (let i = 0; i < numRolls; i++) {
+    buffer.push(rollDice() > 50 ? "O" : "U");
+    if (buffer.length > 10) buffer.shift();
+
+    if (buffer.length === 10 && buffer.join("") === patternStr) {
+      hits++;
+    }
+  }
+
+  console.log(`Pattern "${patternStr}" matched ${hits} times`);
+  // simulateCustom10RollPattern(['O', 'U', 'O', 'U', 'O', 'U', 'O', 'U', 'O', 'U']);
 }
 
 function assignReversal50Result(newestRoll) {
@@ -183,7 +289,7 @@ function simulateDiceRolls(
 ) {
   // Print CSV header
   console.log(
-    "Row,Number,OV/UN,LOW_PROB,REVERSE_WL,REVERSE_VAL,NEXT_GUESS,CURRENT_PL,CUME_PL"
+    `Row,Number,OV/UN,LOW_PROB,REVERSE_WL,REVERSE_VAL,NEXT_GUESS,CURRENT_PL,CUME_PL,${clientSeed},${serverSeed}`
   );
   for (let i = 0; i < count; i++) {
     const nonce = i; // Increment nonce for each roll
