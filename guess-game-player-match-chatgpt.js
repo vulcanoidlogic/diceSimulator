@@ -1,5 +1,5 @@
 // guessingGameSim.js
-// Simulates 15 players guessing coin tosses for 6, 7, and 8 consecutive rounds.
+// Simulates 15 players guessing coin tosses for consecutive rounds.
 // Runs 1,000,000 simulations and reports how many times >=2 players succeed.
 
 function simulate(numPlayers, numGuesses, numTrials) {
