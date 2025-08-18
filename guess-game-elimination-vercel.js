@@ -6,6 +6,7 @@
 function simulateGame() {
   let players = Array.from({ length: 15 }, (_, i) => `P-${i}`);
   let rounds = 0;
+  const playerProgression = [15]; // Start with 15 players
 
   while (players.length > 1) {
     rounds++;
@@ -26,6 +27,7 @@ function simulateGame() {
     }
 
     players = survivingPlayers;
+    playerProgression.push(players.length);
 
     // If no players survive, the game ends with no winner
     if (players.length === 0) {
@@ -33,7 +35,7 @@ function simulateGame() {
     }
   }
 
-  return rounds;
+  return { rounds, playerProgression };
 }
 
 function runSimulation(numGames = 1000000) {
@@ -46,16 +48,28 @@ function runSimulation(numGames = 1000000) {
   const roundCounts = {};
   let maxRounds = 0;
   let gamesWithWinner = 0;
+  const playersByRound = {}; // roundNumber -> array of player counts
 
   const startTime = Date.now();
 
   for (let game = 0; game < numGames; game++) {
-    const rounds = simulateGame();
+    const { rounds, playerProgression } = simulateGame();
 
     if (rounds > 0) {
       gamesWithWinner++;
       maxRounds = Math.max(maxRounds, rounds);
       roundCounts[rounds] = (roundCounts[rounds] || 0) + 1;
+
+      for (
+        let roundIndex = 0;
+        roundIndex < playerProgression.length;
+        roundIndex++
+      ) {
+        if (!playersByRound[roundIndex]) {
+          playersByRound[roundIndex] = [];
+        }
+        playersByRound[roundIndex].push(playerProgression[roundIndex]);
+      }
     }
 
     // Progress indicator for long simulations
@@ -111,12 +125,34 @@ function runSimulation(numGames = 1000000) {
   const median = allRounds[Math.floor(allRounds.length / 2)];
   console.log(`Median rounds per game: ${median}`);
 
+  console.log("\n=== AVERAGE PLAYERS PER ROUND ===");
+  const maxRoundIndex = Math.max(...Object.keys(playersByRound).map(Number));
+
+  for (let roundIndex = 0; roundIndex <= maxRoundIndex; roundIndex++) {
+    if (playersByRound[roundIndex]) {
+      const playerCounts = playersByRound[roundIndex];
+      const averagePlayers = (
+        playerCounts.reduce((sum, count) => sum + count, 0) /
+        playerCounts.length
+      ).toFixed(2);
+
+      if (roundIndex === 0) {
+        console.log(`Start of game: ${averagePlayers} players (always 15)`);
+      } else {
+        console.log(
+          `After round ${roundIndex}: ${averagePlayers} players on average`
+        );
+      }
+    }
+  }
+
   return {
     maxRounds,
     roundCounts,
     gamesWithWinner,
     averageRounds: Number.parseFloat(averageRounds),
     median,
+    playersByRound,
   };
 }
 
