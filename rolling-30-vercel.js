@@ -10,16 +10,16 @@ function generateRandomNumbers() {
   return numbers;
 }
 
-// Process sets of 20 numbers
+// Process sets of 30 numbers
 function processNumberSets(numbers) {
   const results = [];
 
-  for (let i = 0; i < numbers.length; i += 20) {
-    // Get current set of 20 numbers
-    const currentSet = numbers.slice(i, i + 20);
+  for (let i = 0; i < numbers.length; i += 30) {
+    // Get current set of 30 numbers
+    const currentSet = numbers.slice(i, i + 30);
 
-    // Skip if we don't have a full set of 20
-    if (currentSet.length < 20) break;
+    // Skip if we don't have a full set of 30
+    if (currentSet.length < 30) break;
 
     // Count UN50 (≤ 50.00) and OV50 (> 50.00)
     let un50Count = 0;
@@ -50,7 +50,7 @@ function processNumberSets(numbers) {
     // Find next occurrence of loser
     let nextLoserIndex = -1;
     if (loser) {
-      for (let j = i + 20; j < numbers.length; j++) {
+      for (let j = i + 30; j < numbers.length; j++) {
         const isLoserCategory =
           (loser === "UN" && numbers[j] <= 50.0) ||
           (loser === "OV" && numbers[j] > 50.0);
@@ -62,11 +62,11 @@ function processNumberSets(numbers) {
     }
 
     const countUntilNextLoser =
-      nextLoserIndex === -1 ? -1 : nextLoserIndex - (i + 19);
+      nextLoserIndex === -1 ? -1 : nextLoserIndex - (i + 29);
 
     results.push({
       startIndex: i,
-      endIndex: i + 19,
+      endIndex: i + 29,
       un50Count,
       ov50Count,
       winner,
@@ -82,7 +82,7 @@ function processNumberSets(numbers) {
 console.log("Generating 10,000 random numbers...");
 const numbers = generateRandomNumbers();
 
-console.log("Processing sets of 20 numbers...");
+console.log("Processing sets of 30 numbers...");
 const results = processNumberSets(numbers);
 
 let maxCountUntilNextLoser = 0;
