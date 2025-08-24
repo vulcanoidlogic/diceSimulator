@@ -86,6 +86,7 @@ console.log("Processing sets of 20 numbers...");
 const results = processNumberSets(numbers);
 
 let maxCountUntilNextLoser = 0;
+let countUntilNextLoserGt11 = 0;
 
 console.log("\n=== SUMMARY RESULTS ===");
 console.log(
@@ -106,6 +107,9 @@ results.forEach((result, index) => {
       ? "N/A".padStart(18, " ")
       : result.countUntilNextLoser.toString().padStart(17, " ");
 
+  if (result.countUntilNextLoser > 11) {
+    countUntilNextLoserGt11++;
+  }
   if (
     result.countUntilNextLoser !== -1 &&
     result.countUntilNextLoser > maxCountUntilNextLoser
@@ -128,6 +132,7 @@ console.log(`UN wins: ${winnerCounts.UN}`);
 console.log(`OV wins: ${winnerCounts.OV}`);
 console.log(`Ties: ${winnerCounts.TIE}`);
 console.log(`MaxCountUntilNextLoser: ${maxCountUntilNextLoser}`);
+console.log(`CountUntilNextLoserGt11: ${countUntilNextLoserGt11}`);
 
 // Show first few numbers as sample
 console.log("\n=== SAMPLE DATA (First 40 numbers) ===");
