@@ -1,4 +1,4 @@
-// Generate array of 10,000 random numbers between 0.00 and 100.00
+// Generate array of 1,000,000 random numbers between 0.00 and 100.00
 function generateRandomNumbers() {
   const numbers = [];
   for (let i = 0; i < 1000000; i++) {
@@ -73,7 +73,7 @@ function processNumberSets(numbers) {
 }
 
 // Main execution
-console.log("Generating 10,000 random numbers...");
+console.log("Generating 1,000,000 random numbers...");
 const numbers = generateRandomNumbers();
 
 console.log("Processing sets of 20 numbers...");
@@ -135,16 +135,21 @@ if (countUntilNextLoser.length > 0) {
   });
 
   console.log(`Frequency of Count Until Next Loser:`);
+  let totalFrequency = 0;
   Object.keys(frequency)
     .sort((a, b) => Number(a) - Number(b))
     .forEach((count) => {
       console.log(`  ${count} steps: ${frequency[count]} times`);
+      totalFrequency += frequency[count];
     });
+
+  console.log(`Sum of frequency counts: ${totalFrequency}`);
 } else {
   console.log(
     `Maximum Count Until Next Loser: N/A (no winners with next loser found)`
   );
   console.log(`Frequency of Count Until Next Loser: N/A`);
+  console.log(`Sum of frequency counts: 0`);
 }
 
 // Show first few numbers as sample
