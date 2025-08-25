@@ -75,11 +75,17 @@ console.log(`OV Wins: ${ovWins}`);
 console.log(`Ties: ${ties}`);
 console.log(`Maximum Count Until Next Loser: ${maxCountUntilNextLoser}`);
 console.log("Frequency of Count Until Next Loser:");
-for (const [count, freq] of countUntilNextLoserFreq) {
+
+// Sort and display frequency in ascending order of count
+const sortedFreq = Array.from(countUntilNextLoserFreq.entries()).sort(
+  (a, b) => a[0] - b[0]
+);
+for (const [count, freq] of sortedFreq) {
   console.log(`  Count ${count}: ${freq} times`);
 }
 console.log(
-  `Sum of Frequency Counts: ${Array.from(
-    countUntilNextLoserFreq.values()
-  ).reduce((a, b) => a + b, 0)}`
+  `Sum of Frequency Counts: ${sortedFreq.reduce(
+    (sum, [, freq]) => sum + freq,
+    0
+  )}`
 );
