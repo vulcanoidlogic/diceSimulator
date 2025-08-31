@@ -13,7 +13,9 @@ let freqCounts = new Map();
 let maxCount = 0;
 let totalSets = 0;
 
-console.log("Index|UN50|OV50|Winner|NextLoserIndex|CountUntilNextLoser");
+console.log(
+  "Index|UN50|OV50|Winner|NextLoserIndex|CountUntilNextLoser|LargeNextLoser"
+);
 
 for (let i = WINDOW; i <= SIZE; i += WINDOW) {
   const slice = numbers.slice(i - WINDOW, i);
@@ -55,8 +57,13 @@ for (let i = WINDOW; i <= SIZE; i += WINDOW) {
     }
   }
 
+  let largeNextLoser = "";
+  if (countUntilNextLoser >= 10) {
+    largeNextLoser = "LARGE";
+  }
+
   console.log(
-    `${i}|${unCount}|${ovCount}|${winner}|${nextLoserIndex}|${countUntilNextLoser}`
+    `${i}|${unCount}|${ovCount}|${winner}|${nextLoserIndex}|${countUntilNextLoser}|${largeNextLoser}`
   );
   totalSets++;
 }

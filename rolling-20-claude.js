@@ -40,7 +40,9 @@ const analyzeNumbers = () => {
   };
 
   // CSV header
-  console.log("Index|UN50|OV50|Winner|NextLoserIndex|CountUntilNextLoser");
+  console.log(
+    "Index|UN50|OV50|Winner|NextLoserIndex|CountUntilNextLoser|LargeNextLoser"
+  );
 
   // Process sets of 20 (starting from index 20)
   for (let i = 20; i < numbers.length; i += 20) {
@@ -93,9 +95,13 @@ const analyzeNumbers = () => {
       }
     }
 
+    let largeNextLoser = "";
+    if (countUntilNextLoser >= 9) {
+      largeNextLoser = "LARGE";
+    }
     // Display CSV row
     console.log(
-      `${i}|${un50Count}|${ov50Count}|${winner}|${nextLoserIndex}|${countUntilNextLoser}`
+      `${i}|${un50Count}|${ov50Count}|${winner}|${nextLoserIndex}|${countUntilNextLoser}|${largeNextLoser}`
     );
 
     // Update summary
