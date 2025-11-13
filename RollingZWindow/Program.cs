@@ -9,7 +9,18 @@ namespace GuessingGameSafeBetting
     {
         static void Main(string[] args)
         {
-            RunSimulation(trialCount: 10000, initialBankroll: 1000.0);
+            // === PARSE COMMAND-LINE ARGUMENTS ===
+            int trialCount = 3000;      // default
+            double initialBankroll = 50.0; // default
+
+            if (args.Length >= 1 && int.TryParse(args[0], out int t))
+                trialCount = Math.Max(1, t);
+
+            if (args.Length >= 2 && double.TryParse(args[1], out double b))
+                initialBankroll = Math.Max(0.01, b);
+
+            Console.WriteLine($"Starting simulation: {trialCount} trials | Bankroll: {initialBankroll:C2}\n");
+            RunSimulation(trialCount, initialBankroll);
         }
 
         static void RunSimulation(int trialCount, double initialBankroll)
@@ -22,12 +33,12 @@ namespace GuessingGameSafeBetting
             // === SETTINGS ===
             const int windowSize = 30;
             const double zThresholdEnter = 2.0;
-            const double zThresholdBet = 2.5;       // Only bet if current |z| >= 2.5
+            const double zThresholdBet = 2.5;
             const int reversalDiff = 5;
             const int maxTrialsWithoutReversal = 100;
             const double kellyMultiplier = 0.025;
             const double maxKellyFraction = 0.05;
-            const double minBet = 1.0;
+            const double minBet = 0.01;
             const double profitTargetMultiplier = 3.0;
             const double drawdownStop = 0.5;
             const double modeLossCap = 0.01;
@@ -43,11 +54,9 @@ namespace GuessingGameSafeBetting
             int maxContinuationInMode = 0;
             int continuationStreak = 0;
 
-            Console.WriteLine($"Starting SAFE simulation...\n");
-
             for (int trial = 1; trial <= trialCount; trial++)
             {
-                // === QUIT ON PROFIT TARGET ===
+                // === PROFIT TARGET QUIT ===
                 if (bankroll >= initialBankroll * profitTargetMultiplier)
                 {
                     Console.ForegroundColor = ConsoleColor.Yellow;
@@ -63,7 +72,7 @@ namespace GuessingGameSafeBetting
 
                 if (outcomes.Count != windowSize) continue;
 
-                // === RECALCULATE Z-SCORE EVERY TRIAL ===
+                // === RECALCULATE Z-SCORE ===
                 int ovCount = outcomes.Count(o => o.label == "OV");
                 int unCount = windowSize - ovCount;
                 double p = 0.5;
@@ -100,9 +109,7 @@ namespace GuessingGameSafeBetting
                 }
                 else
                 {
-                    // === UPDATE CURRENT Z-SCORE ===
                     currentMode.ZScore = currentZ;
-
                     int trialsInMode = trial - modeStartTrial.Value;
                     string betSide = currentMode.Type == "SYNC" ? "OV" : "UN";
 
@@ -123,7 +130,7 @@ namespace GuessingGameSafeBetting
                         continue;
                     }
 
-                    // === BET ONLY ON STRONG CURRENT Z ===
+                    // === BET ON STRONG Z ===
                     if (Math.Abs(currentZ) >= zThresholdBet)
                     {
                         double fraction = Math.Min(Math.Abs(currentZ) * kellyMultiplier, maxKellyFraction);
@@ -195,6 +202,7 @@ namespace GuessingGameSafeBetting
 
             PrintFinalReport(bankroll, initialBankroll, peakBankroll, bets, modes);
             ExportBetsToCsv(bets, "safe_bets.csv");
+            Console.WriteLine("\nBet log: safe_bets.csv");
         }
 
         static void EnterModeOutput(int trial, string type, double z)
