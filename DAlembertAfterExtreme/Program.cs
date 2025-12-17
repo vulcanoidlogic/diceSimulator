@@ -54,6 +54,15 @@ namespace GuessingGameSafeBetting
             int maxContinuationInMode = 0;
             int continuationStreak = 0;
 
+            // D'Alembert settings
+            const double dalembertStartBet = 1.00;   // start at $1
+            const double dalembertStep = 0.20;       // change by $0.20 per win/loss
+            const double zThresholdExtreme = 2.95;   // extreme z to trigger sequence
+
+            bool inDAlembert = false;
+            double currentDAlembertBet = 0.0;
+            string dalembertSide = null; // "OV" or "UN"
+
             for (int trial = 1; trial <= trialCount; trial++)
             {
                 // === PROFIT TARGET QUIT ===
@@ -65,7 +74,7 @@ namespace GuessingGameSafeBetting
                     break;
                 }
 
-                // If we don't yet have a full historical window, roll and seed outcomes without betting.
+                // If we don't yet have a full historical window, seed outcomes without betting.
                 if (outcomes.Count < windowSize)
                 {
                     double seedNumber = rand.NextDouble() * 100.0;
@@ -75,7 +84,7 @@ namespace GuessingGameSafeBetting
                     continue;
                 }
 
-                // === RECALCULATE Z-SCORE using only past outcomes (no lookahead) ===
+                // === RECALCULATE Z-SCORE using only past outcomes ===
                 int ovCount = outcomes.Count(o => o.label == "OV");
                 int unCount = windowSize - ovCount;
                 double p = 0.5;
@@ -83,75 +92,38 @@ namespace GuessingGameSafeBetting
                 double stdDev = Math.Sqrt(windowSize * p * (1 - p));
                 double currentZ = (ovCount - expected) / stdDev;
 
-                bool shouldEnterSync = currentZ >= zThresholdEnter;
-                bool shouldEnterAntiSync = currentZ <= -zThresholdEnter;
+                // Trigger a D'Alembert sequence when z reaches an extreme (positive -> OV, negative -> UN)
+                if (!inDAlembert && Math.Abs(currentZ) >= zThresholdExtreme)
+                {
+                    inDAlembert = true;
+                    currentDAlembertBet = dalembertStartBet;
+                    dalembertSide = currentZ >= zThresholdExtreme ? "OV" : "UN";
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"[{trial,5}] >>> DALEMEBERT START: side={dalembertSide} | z={currentZ,5:F2} <<<");
+                    Console.ResetColor();
+                }
 
-                // Track whether we will place a bet for the upcoming (not-yet-seen) outcome
+                // Prepare pending bet if we are in a D'Alembert sequence and next bet is > 0 and bankroll allows
                 bool willBet = false;
                 double pendingBetSize = 0.0;
                 string pendingBetSide = null;
 
-                // === MODE ENTRY ===
-                if (currentMode == null)
+                if (inDAlembert && currentDAlembertBet > 0.0 && bankroll > 0.0)
                 {
-                    if (shouldEnterSync)
+                    pendingBetSize = Math.Round(Math.Min(currentDAlembertBet, bankroll), 2);
+                    if (pendingBetSize > 0.0)
                     {
-                        currentMode = new Mode { Type = "SYNC", StartTrial = trial, ZScore = currentZ };
-                        modeStartTrial = trial;
-                        modeStartBankroll = bankroll;
-                        ovInSyncCount = 0;
-                        maxContinuationInMode = 0;
-                        continuationStreak = 0;
-                        EnterModeOutput(trial, "SYNC", currentZ);
-                    }
-                    else if (shouldEnterAntiSync)
-                    {
-                        currentMode = new Mode { Type = "ANTI-SYNC", StartTrial = trial, ZScore = currentZ };
-                        modeStartTrial = trial;
-                        modeStartBankroll = bankroll;
-                        unInAntiSyncCount = 0;
-                        maxContinuationInMode = 0;
-                        continuationStreak = 0;
-                        EnterModeOutput(trial, "ANTI-SYNC", currentZ);
-                    }
-                }
-                else
-                {
-                    currentMode.ZScore = currentZ;
-                    int trialsInMode = trial - modeStartTrial.Value;
-                    string betSide = currentMode.Type == "SYNC" ? "OV" : "UN";
-
-                    // === DRAWDOWN STOP ===
-                    if (bankroll < peakBankroll * drawdownStop)
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"[EMERGENCY STOP] Bankroll: {bankroll:C2}");
-                        Console.ResetColor();
-                        break;
-                    }
-
-                    // === MODE LOSS CAP ===
-                    if (bankroll < modeStartBankroll * (1 - modeLossCap))
-                    {
-                        EndModeAndReset(trial, trialsInMode, "loss cap", maxContinuationInMode, ref currentMode, ref modeStartTrial,
-                                        ref ovInSyncCount, ref unInAntiSyncCount, ref maxContinuationInMode, ref continuationStreak, modes);
-                        continue;
-                    }
-
-                    // === PREPARE A BET ON STRONG Z (will be resolved after we see the next outcome) ===
-                    if (Math.Abs(currentZ) >= zThresholdBet)
-                    {
-                        double fraction = Math.Min(Math.Abs(currentZ) * kellyMultiplier, maxKellyFraction);
-                        double betSize = Math.Max(bankroll * fraction, minBet);
-                        betSize = Math.Round(betSize, 2);
-
                         willBet = true;
-                        pendingBetSize = betSize;
-                        pendingBetSide = betSide;
+                        pendingBetSide = dalembertSide;
+                    }
+                    else
+                    {
+                        // No funds to bet — stop sequence
+                        inDAlembert = false;
                     }
                 }
 
-                // === NOW ROLL THE NEXT OUTCOME (this is the trial we bet on) ===
+                // === ROLL NEXT OUTCOME (we decide based on past, then see the next outcome) ===
                 double number = rand.NextDouble() * 100.0;
                 string label = number <= 50.00 ? "UN" : "OV";
 
@@ -159,7 +131,7 @@ namespace GuessingGameSafeBetting
                 if (outcomes.Count >= windowSize) outcomes.RemoveAt(0);
                 outcomes.Add((number, label));
 
-                // After seeing the outcome, resolve any pending bet and update state that depends on the outcome
+                // Resolve pending D'Alembert bet
                 if (willBet && pendingBetSide != null)
                 {
                     bool won = label == pendingBetSide;
@@ -170,8 +142,8 @@ namespace GuessingGameSafeBetting
                     bets.Add(new BetRecord
                     {
                         Trial = trial,
-                        Mode = currentMode?.Type,
-                        ZScore = currentMode?.ZScore ?? currentZ,
+                        Mode = "DALEM",
+                        ZScore = currentZ,
                         BetSide = pendingBetSide,
                         BetSize = pendingBetSize,
                         Outcome = label,
@@ -180,45 +152,35 @@ namespace GuessingGameSafeBetting
                         Bankroll = bankroll
                     });
 
-                    Console.ForegroundColor = (bankroll >= 0 && (bets.Last().Won)) ? ConsoleColor.Cyan : ConsoleColor.Magenta;
-                    Console.WriteLine($"[BET {trial,5}] {pendingBetSide} @ {pendingBetSize,7:C} → {(bets.Last().Won ? "WIN" : "LOSS")} | Bankroll: {bankroll,8:C}");
+                    Console.ForegroundColor = won ? ConsoleColor.Cyan : ConsoleColor.Magenta;
+                    Console.WriteLine($"[BET {trial,5}] {pendingBetSide} @ {pendingBetSize,7:C} → {(won ? "WIN" : "LOSS")} | Bankroll: {bankroll,8:C}");
                     Console.ResetColor();
+
+                    // Update D'Alembert bet for next round
+                    if (won)
+                        currentDAlembertBet = Math.Round(currentDAlembertBet - dalembertStep, 2);
+                    else
+                        currentDAlembertBet = Math.Round(currentDAlembertBet + dalembertStep, 2);
+
+                    // If the next bet would reach zero or below, stop the sequence
+                    if (currentDAlembertBet <= 0.0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"[{trial,5}] <<< DALEMBERT END: next bet would be ${currentDAlembertBet:F2} — sequence stopped >>>");
+                        Console.ResetColor();
+                        inDAlembert = false;
+                        currentDAlembertBet = 0.0;
+                        dalembertSide = null;
+                    }
                 }
 
-                // === CONTINUATION STREAK ===
-                if (currentMode != null)
+                // Emergency drawdown stop
+                if (bankroll < peakBankroll * drawdownStop)
                 {
-                    bool isContinuation = (currentMode.Type == "SYNC" && label == "OV") ||
-                                          (currentMode.Type == "ANTI-SYNC" && label == "UN");
-                    if (isContinuation)
-                    {
-                        continuationStreak++;
-                        maxContinuationInMode = Math.Max(maxContinuationInMode, continuationStreak);
-                    }
-                    else
-                    {
-                        continuationStreak = 0;
-                    }
-
-                    // === REVERSAL ===
-                    // Recompute counts based on the updated window (which now includes this outcome)
-                    int ovCountNow = outcomes.Count(o => o.label == "OV");
-                    int unCountNow = windowSize - ovCountNow;
-                    int diff = currentMode.Type == "SYNC" ? unCountNow - ovCountNow : ovCountNow - unCountNow;
-                    int trialsInMode = trial - modeStartTrial.Value;
-                    if (diff >= reversalDiff)
-                    {
-                        EndModeAndReset(trial, trialsInMode, "reversal", maxContinuationInMode, ref currentMode, ref modeStartTrial,
-                                        ref ovInSyncCount, ref unInAntiSyncCount, ref maxContinuationInMode, ref continuationStreak, modes);
-                        continue;
-                    }
-
-                    // === TIMEOUT ===
-                    if (trialsInMode >= maxTrialsWithoutReversal)
-                    {
-                        EndModeAndReset(trial, trialsInMode, "timeout", maxContinuationInMode, ref currentMode, ref modeStartTrial,
-                                        ref ovInSyncCount, ref unInAntiSyncCount, ref maxContinuationInMode, ref continuationStreak, modes);
-                    }
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"[EMERGENCY STOP] Bankroll: {bankroll:C2}");
+                    Console.ResetColor();
+                    break;
                 }
             }
 
