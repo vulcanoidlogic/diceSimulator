@@ -10,7 +10,7 @@ namespace GuessingGameSafeBetting
         static void Main(string[] args)
         {
             // === PARSE COMMAND-LINE ARGUMENTS ===
-            int trialCount = 3000;      // default
+            int trialCount = 100000;      // default
             double initialBankroll = 50.0; // default
 
             if (args.Length >= 1 && int.TryParse(args[0], out int t))
@@ -31,17 +31,11 @@ namespace GuessingGameSafeBetting
             var bets = new List<BetRecord>();
 
             // === SETTINGS ===
-            const int windowSize = 30;
-            const double zThresholdEnter = 2.0;
-            const double zThresholdBet = 2.5;
-            const int reversalDiff = 5;
+            // Use cumulative history (no sliding window). Require a minimum number of samples
+            const int minSamples = 30;
             const int maxTrialsWithoutReversal = 100;
-            const double kellyMultiplier = 0.025;
-            const double maxKellyFraction = 0.05;
-            const double minBet = 0.01;
-            const double profitTargetMultiplier = 3.0;
+            const double profitTargetMultiplier = 10.0;
             const double drawdownStop = 0.5;
-            const double modeLossCap = 0.01;
 
             double bankroll = initialBankroll;
             double peakBankroll = bankroll;
@@ -57,11 +51,15 @@ namespace GuessingGameSafeBetting
             // D'Alembert settings
             const double dalembertStartBet = 1.00;   // start at $1
             const double dalembertStep = 0.20;       // change by $0.20 per win/loss
-            const double zThresholdExtreme = 2.95;   // extreme z to trigger sequence
+            const double zThresholdExtreme = 2.5;   // extreme z to trigger sequence
 
             bool inDAlembert = false;
             double currentDAlembertBet = 0.0;
             string dalembertSide = null; // "OV" or "UN"
+            // Sequence tracking for hybrid stop
+            double sequencePnL = 0.0;
+            const double sequenceProfitTarget = 0.50; // stop early if sequence nets >= $0.50
+            const double sequenceMinStopBet = 0.20;   // stop if next bet <= $0.20
 
             for (int trial = 1; trial <= trialCount; trial++)
             {
@@ -74,30 +72,32 @@ namespace GuessingGameSafeBetting
                     break;
                 }
 
-                // If we don't yet have a full historical window, seed outcomes without betting.
-                if (outcomes.Count < windowSize)
+                // If we don't yet have enough past samples, seed outcomes without betting.
+                if (outcomes.Count < minSamples)
                 {
                     double seedNumber = rand.NextDouble() * 100.0;
                     string seedLabel = seedNumber <= 50.00 ? "UN" : "OV";
                     outcomes.Add((seedNumber, seedLabel));
-                    if (outcomes.Count > windowSize) outcomes.RemoveAt(0);
                     continue;
                 }
 
                 // === RECALCULATE Z-SCORE using only past outcomes ===
                 int ovCount = outcomes.Count(o => o.label == "OV");
-                int unCount = windowSize - ovCount;
+                int n = outcomes.Count;
+                int unCount = n - ovCount;
                 double p = 0.5;
-                double expected = windowSize * p;
-                double stdDev = Math.Sqrt(windowSize * p * (1 - p));
-                double currentZ = (ovCount - expected) / stdDev;
+                double expected = n * p;
+                double stdDev = Math.Sqrt(n * p * (1 - p));
+                double currentZ = stdDev > 0.0 ? (ovCount - expected) / stdDev : 0.0;
 
                 // Trigger a D'Alembert sequence when z reaches an extreme (positive -> OV, negative -> UN)
                 if (!inDAlembert && Math.Abs(currentZ) >= zThresholdExtreme)
                 {
                     inDAlembert = true;
                     currentDAlembertBet = dalembertStartBet;
-                    dalembertSide = currentZ >= zThresholdExtreme ? "OV" : "UN";
+                    sequencePnL = 0.0;
+                    // Bet the opposite side of the extreme z-score
+                    dalembertSide = currentZ >= zThresholdExtreme ? "UN" : "OV";
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine($"[{trial,5}] >>> DALEMEBERT START: side={dalembertSide} | z={currentZ,5:F2} <<<");
                     Console.ResetColor();
@@ -127,8 +127,7 @@ namespace GuessingGameSafeBetting
                 double number = rand.NextDouble() * 100.0;
                 string label = number <= 50.00 ? "UN" : "OV";
 
-                // Slide window: remove oldest, add this new outcome
-                if (outcomes.Count >= windowSize) outcomes.RemoveAt(0);
+                // Add this new outcome to cumulative history (no sliding window)
                 outcomes.Add((number, label));
 
                 // Resolve pending D'Alembert bet
@@ -138,6 +137,9 @@ namespace GuessingGameSafeBetting
                     double pnl = won ? pendingBetSize : -pendingBetSize;
                     bankroll += pnl;
                     peakBankroll = Math.Max(peakBankroll, bankroll);
+
+                    // track sequence pnl
+                    sequencePnL += pnl;
 
                     bets.Add(new BetRecord
                     {
@@ -162,15 +164,19 @@ namespace GuessingGameSafeBetting
                     else
                         currentDAlembertBet = Math.Round(currentDAlembertBet + dalembertStep, 2);
 
-                    // If the next bet would reach zero or below, stop the sequence
-                    if (currentDAlembertBet <= 0.0)
+                    // Hybrid stop: stop if sequence profit target reached OR the next bet would be <= min stop bet
+                    if (sequencePnL >= sequenceProfitTarget || currentDAlembertBet <= sequenceMinStopBet)
                     {
                         Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine($"[{trial,5}] <<< DALEMBERT END: next bet would be ${currentDAlembertBet:F2} — sequence stopped >>>");
+                        if (sequencePnL >= sequenceProfitTarget)
+                            Console.WriteLine($"[{trial,5}] <<< DALEMBERT END: sequencePnL ${sequencePnL:F2} >= ${sequenceProfitTarget:F2} (profit target) >>>");
+                        else
+                            Console.WriteLine($"[{trial,5}] <<< DALEMBERT END: next bet would be ${currentDAlembertBet:F2} <= ${sequenceMinStopBet:F2} (min bet) >>>");
                         Console.ResetColor();
                         inDAlembert = false;
                         currentDAlembertBet = 0.0;
                         dalembertSide = null;
+                        sequencePnL = 0.0;
                     }
                 }
 
