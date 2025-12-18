@@ -10,8 +10,8 @@ namespace GuessingGameSafeBetting
         static void Main(string[] args)
         {
             // === PARSE COMMAND-LINE ARGUMENTS ===
-            int trialCount = 100000;      // default
-            double initialBankroll = 50.0; // default
+                int trialCount = 100000;      // default
+                double initialBankroll = 30.0; // default
 
             if (args.Length >= 1 && int.TryParse(args[0], out int t))
                 trialCount = Math.Max(1, t);
@@ -19,11 +19,16 @@ namespace GuessingGameSafeBetting
             if (args.Length >= 2 && double.TryParse(args[1], out double b))
                 initialBankroll = Math.Max(0.01, b);
 
-            Console.WriteLine($"Starting simulation: {trialCount} trials | Bankroll: {initialBankroll:C2}\n");
-            RunSimulation(trialCount, initialBankroll);
+            // optional third arg: z-threshold for triggering D'Alembert (default 2.5)
+            double zThresholdExtreme = 2.5;
+            if (args.Length >= 3 && double.TryParse(args[2], out double zt))
+                zThresholdExtreme = zt;
+
+            Console.WriteLine($"Starting simulation: {trialCount} trials | Bankroll: {initialBankroll:C2} | zThreshold: {zThresholdExtreme}\n");
+            RunSimulation(trialCount, initialBankroll, zThresholdExtreme);
         }
 
-        static void RunSimulation(int trialCount, double initialBankroll)
+        static void RunSimulation(int trialCount, double initialBankroll, double zThresholdExtreme)
         {
             Random rand = new Random();
             var outcomes = new List<(double value, string label)>();
@@ -49,17 +54,21 @@ namespace GuessingGameSafeBetting
             int continuationStreak = 0;
 
             // D'Alembert settings
-            const double dalembertStartBet = 1.00;   // start at $1
-            const double dalembertStep = 0.20;       // change by $0.20 per win/loss
-            const double zThresholdExtreme = 2.5;   // extreme z to trigger sequence
+            const double dalembertStartBet = 0.20;   // start at $0.20
+            const double dalembertStep = 0.02;       // change by $0.02 per win/loss
 
             bool inDAlembert = false;
             double currentDAlembertBet = 0.0;
             string dalembertSide = null; // "OV" or "UN"
             // Sequence tracking for hybrid stop
             double sequencePnL = 0.0;
-            const double sequenceProfitTarget = 0.50; // stop early if sequence nets >= $0.50
-            const double sequenceMinStopBet = 0.20;   // stop if next bet <= $0.20
+            const double sequenceProfitTarget = 0.25; // stop early if sequence nets >= $0.50
+            const double sequenceMinStopBet = dalembertStep;   // stop if next bet <= $0.20
+
+            // Diagnostics: track max |z| and how many times |z| >= zThresholdExtreme occurred
+            double maxAbsZ = 0.0;
+            int extremeCountThreshold = 0;
+            var extremeTrialsThreshold = new List<int>();
 
             for (int trial = 1; trial <= trialCount; trial++)
             {
@@ -89,6 +98,15 @@ namespace GuessingGameSafeBetting
                 double expected = n * p;
                 double stdDev = Math.Sqrt(n * p * (1 - p));
                 double currentZ = stdDev > 0.0 ? (ovCount - expected) / stdDev : 0.0;
+
+                // update diagnostics (check against configured threshold)
+                double absZ = Math.Abs(currentZ);
+                if (absZ > maxAbsZ) maxAbsZ = absZ;
+                if (absZ >= zThresholdExtreme)
+                {
+                    extremeCountThreshold++;
+                    extremeTrialsThreshold.Add(trial);
+                }
 
                 // Trigger a D'Alembert sequence when z reaches an extreme (positive -> OV, negative -> UN)
                 if (!inDAlembert && Math.Abs(currentZ) >= zThresholdExtreme)
@@ -202,6 +220,14 @@ namespace GuessingGameSafeBetting
             PrintFinalReport(bankroll, initialBankroll, peakBankroll, bets, modes);
             ExportBetsToCsv(bets, "safe_bets.csv");
             Console.WriteLine("\nBet log: safe_bets.csv");
+
+            // Diagnostic summary
+            Console.WriteLine($"\nDiagnostic: max |z| observed = {maxAbsZ:F3}, occurrences |z|>={zThresholdExtreme} = {extremeCountThreshold}");
+            if (extremeCountThreshold > 0)
+            {
+                var examples = string.Join(", ", extremeTrialsThreshold.Take(10));
+                Console.WriteLine($"Example extreme trials (first 10): {examples}{(extremeTrialsThreshold.Count>10? " ..." : "")} ");
+            }
         }
 
         static void EnterModeOutput(int trial, string type, double z)
