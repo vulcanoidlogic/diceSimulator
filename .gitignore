@@ -398,5 +398,5 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Custom folders
-./logs/**
-./data/**
+logs/**
+data/**
