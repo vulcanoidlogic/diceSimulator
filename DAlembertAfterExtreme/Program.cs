@@ -54,15 +54,17 @@ namespace GuessingGameSafeBetting
             int continuationStreak = 0;
 
             // D'Alembert settings
-            const double dalembertStartBet = 0.20;   // start at $0.20
+            const double dalembertStartBet = 0.10;   // start at $0.20
             const double dalembertStep = 0.02;       // change by $0.02 per win/loss
+            // Do not place any bets until after this many trials
+            const int noBetUntil = 1000;
 
             bool inDAlembert = false;
             double currentDAlembertBet = 0.0;
             string dalembertSide = null; // "OV" or "UN"
             // Sequence tracking for hybrid stop
             double sequencePnL = 0.0;
-            const double sequenceProfitTarget = 0.25; // stop early if sequence nets >= $0.50
+            const double sequenceProfitTarget = 0.06; // stop early if sequence nets >= $0.50
             const double sequenceMinStopBet = dalembertStep;   // stop if next bet <= $0.20
 
             // Diagnostics: track max |z| and how many times |z| >= zThresholdExtreme occurred
@@ -109,7 +111,8 @@ namespace GuessingGameSafeBetting
                 }
 
                 // Trigger a D'Alembert sequence when z reaches an extreme (positive -> OV, negative -> UN)
-                if (!inDAlembert && Math.Abs(currentZ) >= zThresholdExtreme)
+                // do not start any sequences before noBetUntil
+                if (!inDAlembert && Math.Abs(currentZ) >= zThresholdExtreme && trial > noBetUntil)
                 {
                     inDAlembert = true;
                     currentDAlembertBet = dalembertStartBet;
@@ -128,16 +131,20 @@ namespace GuessingGameSafeBetting
 
                 if (inDAlembert && currentDAlembertBet > 0.0 && bankroll > 0.0)
                 {
-                    pendingBetSize = Math.Round(Math.Min(currentDAlembertBet, bankroll), 2);
-                    if (pendingBetSize > 0.0)
+                    // enforce no-bets-until rule
+                    if (trial > noBetUntil)
                     {
-                        willBet = true;
-                        pendingBetSide = dalembertSide;
-                    }
-                    else
-                    {
-                        // No funds to bet — stop sequence
-                        inDAlembert = false;
+                        pendingBetSize = Math.Round(Math.Min(currentDAlembertBet, bankroll), 2);
+                        if (pendingBetSize > 0.0)
+                        {
+                            willBet = true;
+                            pendingBetSide = dalembertSide;
+                        }
+                        else
+                        {
+                            // No funds to bet — stop sequence
+                            inDAlembert = false;
+                        }
                     }
                 }
 

@@ -1,3 +1,5 @@
+powershell -ExecutionPolicy Bypass -File .\run_dalembert.ps1
+
 # Dice-Betting-Simulator
 JavaScript Dice Betting Simulator
 
