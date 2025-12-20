@@ -1,5 +1,6 @@
 powershell -ExecutionPolicy Bypass -File .\run_dalembert.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\add_trial_number.ps1 -Input .\data\2025-12-18-C7DIFO-MZ--... \ -Output .\data\with-trial.csv
+powershell -ExecutionPolicy Bypass -File .\scripts\sort_by_chester.ps1 .\data\with-trial.csv > .\data\with-trial-sorted.csv
 
 # Dice-Betting-Simulator
 JavaScript Dice Betting Simulator
