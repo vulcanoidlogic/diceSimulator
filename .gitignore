@@ -402,3 +402,4 @@ logs/**
 data/**
 pandasai-env/**
 venv/**
+cache/**
