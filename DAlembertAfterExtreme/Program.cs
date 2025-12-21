@@ -7,7 +7,12 @@ namespace GuessingGameSafeBetting
 {
     class Program
     {
-        static void Main(string[] args)
+    /// <summary>
+    /// Entry point for the simulator. Parses optional command-line arguments
+    /// and starts the simulation run.
+    /// </summary>
+    /// <param name="args">Optional arguments: [0]=trialCount (int), [1]=initialBankroll (double), [2]=zThresholdExtreme (double)</param>
+    static void Main(string[] args)
         {
             // === PARSE COMMAND-LINE ARGUMENTS ===
                 int trialCount = 100000;      // default
@@ -28,7 +33,16 @@ namespace GuessingGameSafeBetting
             RunSimulation(trialCount, initialBankroll, zThresholdExtreme);
         }
 
-        static void RunSimulation(int trialCount, double initialBankroll, double zThresholdExtreme)
+    /// <summary>
+    /// Run the main simulation loop.
+    /// The simulation generates random outcomes and optionally executes
+    /// D'Alembert betting sequences when a Z-score extreme is observed.
+    /// It collects bet records and mode reports and prints a final summary.
+    /// </summary>
+    /// <param name="trialCount">Number of trials to simulate.</param>
+    /// <param name="initialBankroll">Starting bankroll in dollars.</param>
+    /// <param name="zThresholdExtreme">Z-score threshold to trigger an extreme event.</param>
+    static void RunSimulation(int trialCount, double initialBankroll, double zThresholdExtreme)
         {
             Random rand = new Random();
             var outcomes = new List<(double value, string label)>();
@@ -237,18 +251,40 @@ namespace GuessingGameSafeBetting
             }
         }
 
-        static void EnterModeOutput(int trial, string type, double z)
-        {
+    /// <summary>
+    /// Print a standardized message when a new mode (SYNC/ANTI) is entered.
+    /// This is purely diagnostic output to the console.
+    /// </summary>
+    /// <param name="trial">Trial number where the mode started.</param>
+    /// <param name="type">Mode type string (for example "SYNC" or "ANTI").</param>
+    /// <param name="z">Z-score value that triggered the mode.</param>
+    static void EnterModeOutput(int trial, string type, double z)
+    {
             Console.ForegroundColor = type == "SYNC" ? ConsoleColor.Green : ConsoleColor.Red;
             Console.WriteLine($"[{trial,5}] >>> MODE START: {type} | z={z,5:F2} <<<");
             Console.ResetColor();
         }
 
-        static void EndModeAndReset(int endTrial, int trials, string reason, int maxCont,
-                                    ref Mode currentMode, ref int? modeStartTrial,
-                                    ref int ovCount, ref int unCount, ref int maxContOut, ref int streak,
-                                    List<ModeReport> modes)
-        {
+    /// <summary>
+    /// Close out the current mode, add a ModeReport to the modes list,
+    /// and reset counters used to track modes and continuations.
+    /// </summary>
+    /// <param name="endTrial">The trial index where the mode ended.</param>
+    /// <param name="trials">Number of trials the mode lasted.</param>
+    /// <param name="reason">Human-readable reason for ending the mode.</param>
+    /// <param name="maxCont">Maximum continuation observed within the mode.</param>
+    /// <param name="currentMode">Reference to the current Mode object; cleared by this method.</param>
+    /// <param name="modeStartTrial">Reference to the trial index where the mode started; cleared by this method.</param>
+    /// <param name="ovCount">Reference counter for OV occurrences in a mode (reset by this method for SYNC mode).</param>
+    /// <param name="unCount">Reference counter for UN occurrences in a mode (reset by this method for ANTI mode).</param>
+    /// <param name="maxContOut">Reference to the maximum continuation output tracker (reset by this method).</param>
+    /// <param name="streak">Reference to the current streak counter (reset by this method).</param>
+    /// <param name="modes">List to which a finalized ModeReport is appended.</param>
+    static void EndModeAndReset(int endTrial, int trials, string reason, int maxCont,
+                    ref Mode currentMode, ref int? modeStartTrial,
+                    ref int ovCount, ref int unCount, ref int maxContOut, ref int streak,
+                    List<ModeReport> modes)
+    {
             modes.Add(new ModeReport
             {
                 ModeType = currentMode.Type,
@@ -271,8 +307,17 @@ namespace GuessingGameSafeBetting
             streak = 0;
         }
 
-        static void PrintFinalReport(double final, double initial, double peak, List<BetRecord> bets, List<ModeReport> modes)
-        {
+    /// <summary>
+    /// Print a concise summary report to the console including final bankroll,
+    /// return, drawdown, number of bets and mode information.
+    /// </summary>
+    /// <param name="final">Final bankroll value.</param>
+    /// <param name="initial">Initial bankroll value.</param>
+    /// <param name="peak">Peak bankroll observed during the run.</param>
+    /// <param name="bets">List of BetRecord entries recorded during the run.</param>
+    /// <param name="modes">List of ModeReport entries recorded during the run.</param>
+    static void PrintFinalReport(double final, double initial, double peak, List<BetRecord> bets, List<ModeReport> modes)
+    {
             int wins = bets.Count(b => b.Won);
             double winRate = bets.Count > 0 ? wins * 100.0 / bets.Count : 0;
             double roi = (final - initial) / initial * 100;
@@ -292,8 +337,13 @@ namespace GuessingGameSafeBetting
             Console.WriteLine(new string('=', 90));
         }
 
-        static void ExportBetsToCsv(List<BetRecord> bets, string file)
-        {
+    /// <summary>
+    /// Export bet records to a simple CSV file for external analysis.
+    /// </summary>
+    /// <param name="bets">List of recorded bets to export.</param>
+    /// <param name="file">Output filename (overwritten if exists).</param>
+    static void ExportBetsToCsv(List<BetRecord> bets, string file)
+    {
             var lines = new List<string> { "Trial,Mode,ZScore,BetSide,BetSize,Outcome,Won,PnL,Bankroll" };
             lines.AddRange(bets.Select(b =>
                 $"{b.Trial},{b.Mode},{b.ZScore:F3},{b.BetSide},{b.BetSize:F2},{b.Outcome},{b.Won},{b.PnL:F2},{b.Bankroll:F2}"));
