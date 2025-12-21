@@ -400,3 +400,5 @@ FodyWeavers.xsd
 # Custom folders
 logs/**
 data/**
+pandasai-env/**
+venv/**
