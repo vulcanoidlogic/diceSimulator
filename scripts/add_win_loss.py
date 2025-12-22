@@ -1,0 +1,36 @@
+import pandas as pd
+
+# Load the CSV file
+df = pd.read_csv(r"S:\SAIC\Git_projects\homeProjects\diceSimulator\data\with-trial-sorted.csv", encoding="utf-16")
+
+# Initialize Outcome column with empty string
+df['Outcome'] = ''
+
+# Iterate through all rows except the last one
+for i in range(len(df) - 1):
+    current_guess = df.loc[i, 'NextGuess']
+    current_count_over = df.loc[i, 'CountOver']
+    next_count_over = df.loc[i + 1, 'CountOver']
+    
+    if current_guess == 'over':
+        # Win if next CountOver is greater than current CountOver
+        if next_count_over > current_count_over:
+            df.loc[i, 'Outcome'] = 'W'
+        else:
+            df.loc[i, 'Outcome'] = 'L'
+    elif current_guess == 'under':
+        # Win if next CountOver equals current CountOver (no increase)
+        if next_count_over == current_count_over:
+            df.loc[i, 'Outcome'] = 'W'
+        else:
+            df.loc[i, 'Outcome'] = 'L'
+
+# The last row has no next row to compare, so it remains empty or can be marked as N/A
+# df.loc[len(df) - 1, 'Outcome'] = 'N/A'  # Uncomment if you want to mark the last row
+
+# Save the updated CSV file
+df.to_csv(r"S:\SAIC\Git_projects\homeProjects\diceSimulator\data\with-trial-sorted_with_outcome.csv", index=False, encoding='utf-8')
+
+print("Processing complete! File saved with Outcome column.")
+print(f"\nFirst few rows with outcomes:")
+print(df.head(10))
