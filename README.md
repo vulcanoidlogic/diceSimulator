@@ -1,10 +1,14 @@
-powershell -ExecutionPolicy Bypass -File .\run_dalembert.ps1
-powershell -ExecutionPolicy Bypass -File .\scripts\add_trial_number.ps1 -Input .\data\2025-12-24-a-I4fzSSWc8w-71002afbc2a0c8810583a9c5a7614c6d1c9625426b57645a7a537f5e7aeec98e\over-under.csv -Output .\data\with-trial.csv
+--> Ignore this one:  powershell -ExecutionPolicy Bypass -File .\run_dalembert.ps1
+
+*Before running next script, apply csv header to over-under-csv and update -Input parameter
+powershell -ExecutionPolicy Bypass -File .\scripts\add_trial_number.ps1 -Input .\data\2025-12-23-PzcLp_4MSh-aa20d3424b8c9a4419a899d0357dda6ba50b3abf5a8ffea6520ca84824d6440a\over-under.csv -Output .\data\with-trial.csv
 powershell -ExecutionPolicy Bypass -File .\scripts\sort_by_chester.ps1 .\data\with-trial.csv > .\data\with-trial-sorted.csv
 
 pandasai-env\Scripts\activate
 python scripts\add_win_loss.py
-python scripts\over_under_max_difference_by_chester.py
+
+*Before running next script update with correct folder
+python scripts\over_under_max_difference_by_chester.py > data\2025-12-23-PzcLp_4MSh-aa20d3424b8c9a4419a899d0357dda6ba50b3abf5a8ffea6520ca84824d6440a\max-difference.txt
 
 
 # Dice-Betting-Simulator
