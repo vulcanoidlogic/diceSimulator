@@ -31,33 +31,33 @@ def analyze(path):
         except Exception:
             trial = int(float(row['TrialNumber']))
         try:
-            co = int(row['CountOver'])
+            co = int(row['RightGuessCount'])
         except Exception:
-            co = int(float(row['CountOver']))
+            co = int(float(row['RightGuessCount']))
         try:
-            cu = int(row['CountUnder'])
+            cu = int(row['WrongGuessCount'])
         except Exception:
-            cu = int(float(row['CountUnder']))
+            cu = int(float(row['WrongGuessCount']))
         try:
             diff_pct = float(row.get('DifferencePercent', 0.0))
         except Exception:
             diff_pct = 0.0
         ng = row['NextGuess'].strip().lower()
-        groups[ch].append({'trial': trial, 'count_over': co, 'count_under': cu, 'diff_pct': diff_pct, 'nextguess': ng})
+        groups[ch].append({'trial': trial, 'right_guess_count': co, 'wrong_guess_count': cu, 'diff_pct': diff_pct, 'nextguess': ng})
 
-    # Build bets per chester based on next-row CountOver change
+    # Build bets per chester based on next-row RightGuessCount change
     bets_per_ch = {}
     for ch, seq in groups.items():
         bets = []
         for i in range(len(seq)-1):
             row = seq[i]
             nextrow = seq[i+1]
-            co = row['count_over']
-            co_next = nextrow['count_over']
+            co = row['right_guess_count']
+            co_next = nextrow['right_guess_count']
             ng = row['nextguess']
             # Apply user's exact rule:
-            # - If NextGuess == 'over': win only if next CountOver > current; otherwise loss (includes equal or decrease).
-            # - If NextGuess == 'under': win if next CountOver < current OR next CountOver == current (i.e., next CountOver <= current); otherwise loss.
+            # - If NextGuess == 'over': win only if next RightGuessCount > current; otherwise loss (includes equal or decrease).
+            # - If NextGuess == 'under': win if next RightGuessCount < current OR next RightGuessCount == current (i.e., next RightGuessCount <= current); otherwise loss.
             if ng == 'over':
                 if co_next > co:
                     bets.append('win')
@@ -188,8 +188,8 @@ if __name__ == '__main__':
             row = seq[i]
             nextrow = seq[i+1]
             ng = row['nextguess']
-            co = row['count_over']
-            co_next = nextrow['count_over']
+            co = row['right_guess_count']
+            co_next = nextrow['right_guess_count']
             if co_next == co:
                 bets.append('push')
             else:
@@ -221,9 +221,9 @@ if __name__ == '__main__':
                 continue
             if row['diff_pct'] <= cond_diff_pct:
                 continue
-            # determine actual outcome via count_over change
-            co = row['count_over']
-            co_next = nextrow['count_over']
+            # determine actual outcome via right_guess_count change
+            co = row['right_guess_count']
+            co_next = nextrow['right_guess_count']
             ng = row['nextguess']
             # Apply same rule for conditional analysis: under wins on equal or decrease; over wins only on increase
             is_win = False

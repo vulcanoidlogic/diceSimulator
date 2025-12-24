@@ -9,21 +9,21 @@ df['Outcome'] = ''
 # Iterate through all rows except the last one
 for i in range(len(df) - 1):
     current_guess = df.loc[i, 'NextGuess']
-    current_count_over = df.loc[i, 'CountOver']
-    next_count_over = df.loc[i + 1, 'CountOver']
+    current_right_guess_count = df.loc[i, 'RightGuessCount']
+    next_right_guess_count = df.loc[i + 1, 'RightGuessCount']
     
-    if current_guess == 'over':
-        # Win if next CountOver is greater than current CountOver
-        if next_count_over > current_count_over:
-            df.loc[i, 'Outcome'] = 'W'
-        else:
-            df.loc[i, 'Outcome'] = 'L'
-    elif current_guess == 'under':
-        # Win if next CountOver equals current CountOver (no increase)
-        if next_count_over == current_count_over:
-            df.loc[i, 'Outcome'] = 'W'
-        else:
-            df.loc[i, 'Outcome'] = 'L'
+    # if current_guess == 'over':
+        # Win if next RightGuessCount is greater than current RightGuessCount
+    if next_right_guess_count > current_right_guess_count:
+        df.loc[i, 'Outcome'] = 'W'
+    else:
+        df.loc[i, 'Outcome'] = 'L'
+    # elif current_guess == 'under':
+    #     # Win if next RightGuessCount equals current RightGuessCount (no increase)
+    #     if next_right_guess_count == current_right_guess_count:
+    #         df.loc[i, 'Outcome'] = 'W'
+    #     else:
+    #         df.loc[i, 'Outcome'] = 'L'
 
 # The last row has no next row to compare, so it remains empty or can be marked as N/A
 # df.loc[len(df) - 1, 'Outcome'] = 'N/A'  # Uncomment if you want to mark the last row
