@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load the CSV file
-df = pd.read_csv(r"S:\SAIC\Git_projects\homeProjects\diceSimulator\data\with-trial-sorted.csv", encoding="utf-16")
+df = pd.read_csv(r"S:\SAIC\Git_projects\homeProjects\diceSimulator\data\with-trial-sorted.csv", encoding="latin1")
 
 # Initialize Outcome column with empty string
 df['Outcome'] = ''

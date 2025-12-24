@@ -1,8 +1,10 @@
 powershell -ExecutionPolicy Bypass -File .\run_dalembert.ps1
-powershell -ExecutionPolicy Bypass -File .\scripts\add_trial_number.ps1 -Input .\data\2025-12-18-C7DIFO-MZ--... \ -Output .\data\with-trial.csv
+powershell -ExecutionPolicy Bypass -File .\scripts\add_trial_number.ps1 -Input .\data\2025-12-24-a-I4fzSSWc8w-71002afbc2a0c8810583a9c5a7614c6d1c9625426b57645a7a537f5e7aeec98e\over-under.csv -Output .\data\with-trial.csv
 powershell -ExecutionPolicy Bypass -File .\scripts\sort_by_chester.ps1 .\data\with-trial.csv > .\data\with-trial-sorted.csv
 
 pandasai-env\Scripts\activate
+python scripts\add_win_loss.py
+python scripts\over_under_max_difference_by_chester.py
 
 
 # Dice-Betting-Simulator
