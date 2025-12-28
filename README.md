@@ -1,15 +1,18 @@
 --> Ignore this one:  powershell -ExecutionPolicy Bypass -File .\run_dalembert.ps1
 
-*Before running next script, apply csv header to over-under-csv and update -Input parameter
-powershell -ExecutionPolicy Bypass -File .\scripts\add_trial_number.ps1 -Input .\data\2025-12-23-PzcLp_4MSh-aa20d3424b8c9a4419a899d0357dda6ba50b3abf5a8ffea6520ca84824d6440a\over-under.csv -Output .\data\with-trial.csv
+One-Time per session:
+pandasai-env\Scripts\activate
+
+SET WORKING_FOLDER=S:\SAIC\Git_projects\homeProjects\diceSimulator\data\CHANGE_ME_2025-12-08-XOLtbN09vo-e18e882184bf6a04c047af4eee7bddece23cb3a22fc1736221970832b38f6d89
+echo %WORKING_FOLDER%
+powershell -ExecutionPolicy Bypass -File .\scripts\add_trial_number.ps1 -Input %WORKING_FOLDER%\over-under.csv -Output .\data\with-trial.csv
 powershell -ExecutionPolicy Bypass -File .\scripts\sort_by_chester.ps1 .\data\with-trial.csv > .\data\with-trial-sorted.csv
 
-pandasai-env\Scripts\activate
 python scripts\add_win_loss.py
 
-*Before running next script update with correct folder
-python scripts\over_under_max_difference_by_chester.py > data\2025-12-23-PzcLp_4MSh-aa20d3424b8c9a4419a899d0357dda6ba50b3abf5a8ffea6520ca84824d6440a\max-difference.txt
+python scripts\over_under_max_difference_by_chester.py > %WORKING_FOLDER%\max-difference.txt
 
+After this, move all newly-created files to correct folder so they aren't overwritten.
 
 # Dice-Betting-Simulator
 JavaScript Dice Betting Simulator
