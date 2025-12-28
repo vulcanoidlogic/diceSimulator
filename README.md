@@ -14,6 +14,12 @@ python scripts\over_under_max_difference_by_chester.py > %WORKING_FOLDER%\max-di
 
 After this, move all newly-created files to correct folder so they aren't overwritten.
 
+python scripts/display_candle_chart.py
+python scripts/ema_chart.py
+python scripts/ema_rsi_chart.py
+>python scripts/all_chart_components.py
+
+
 # Dice-Betting-Simulator
 JavaScript Dice Betting Simulator
 
