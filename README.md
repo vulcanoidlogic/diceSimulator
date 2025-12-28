@@ -3,7 +3,7 @@
 One-Time per session:
 pandasai-env\Scripts\activate
 
-SET WORKING_FOLDER=S:\SAIC\Git_projects\homeProjects\diceSimulator\data\CHANGE_ME_2025-12-08-XOLtbN09vo-e18e882184bf6a04c047af4eee7bddece23cb3a22fc1736221970832b38f6d89
+SET WORKING_FOLDER=S:\SAIC\Git_projects\homeProjects\diceSimulator\data\CHANGE_ME_2025-12-28-k35sLZXRRd-f54ba6c04876ec01580f03b1b8282221da5a65d917615aaf681ef18147af4f7e
 echo %WORKING_FOLDER%
 powershell -ExecutionPolicy Bypass -File .\scripts\add_trial_number.ps1 -Input %WORKING_FOLDER%\over-under.csv -Output .\data\with-trial.csv
 powershell -ExecutionPolicy Bypass -File .\scripts\sort_by_chester.ps1 .\data\with-trial.csv > .\data\with-trial-sorted.csv
@@ -14,10 +14,12 @@ python scripts\over_under_max_difference_by_chester.py > %WORKING_FOLDER%\max-di
 
 After this, move all newly-created files to correct folder so they aren't overwritten.
 
+
 python scripts/display_candle_chart.py
 python scripts/ema_chart.py
 python scripts/ema_rsi_chart.py
->python scripts/all_chart_components.py
+python scripts/all_chart_components.py
+python scripts/streak_analysis.py
 
 
 # Dice-Betting-Simulator
